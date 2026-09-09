@@ -5,7 +5,9 @@
       <div class="title-with-badge">
         <h1 class="property-title">{{ property.name }}</h1>
         <span v-if="property.has_membership" class="partner-club-badge">
-          <span class="badge-icon">💎</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="badge-svg">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
           <span>Jeevawasa Member Sanctuary</span>
         </span>
       </div>
@@ -106,8 +108,10 @@ const subPhotos = computed(() => {
   letter-spacing: 0.2px;
 }
 
-.badge-icon {
-  font-size: 12px;
+.badge-svg {
+  width: 13px;
+  height: 13px;
+  color: #b45309;
 }
 
 .property-meta-row {

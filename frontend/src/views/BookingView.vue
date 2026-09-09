@@ -101,7 +101,10 @@
                 <div>
                   <h4 class="host-name">Hosted by {{ activeProperty.name }}</h4>
                   <div class="superhost-badge">
-                    <span>★ Superhost • Luxury Hospitality Partner</span>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="superhost-star-svg">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span>Superhost • Luxury Hospitality Partner</span>
                   </div>
                 </div>
               </div>
@@ -133,6 +136,9 @@
     <!-- Floating Member Perks Toast (Bottom-Left Minimal Widget) -->
     <FloatingPerksToast />
 
+    <!-- Floating Reservation Cart Drawer (Bottom-Right Minimal Widget) -->
+    <FloatingCartDrawer />
+
     <!-- Modals -->
     <AuthModal />
     <BookingModal />
@@ -152,6 +158,7 @@ import PropertyHeader from '../components/PropertyHeader.vue'
 import RoomCard from '../components/RoomCard.vue'
 import ExperienceCard from '../components/ExperienceCard.vue'
 import FloatingPerksToast from '../components/FloatingPerksToast.vue'
+import FloatingCartDrawer from '../components/FloatingCartDrawer.vue'
 import AuthModal from '../components/AuthModal.vue'
 import BookingModal from '../components/BookingModal.vue'
 import ConfirmationModal from '../components/ConfirmationModal.vue'
@@ -174,7 +181,7 @@ const {
 } = useBooking()
 
 const loadPropertyFromRoute = async () => {
-  const propertyId = parseInt(route.params.propertyId || '1', 10)
+  const propertyId = parseInt(route.params.propertyId || '5', 10)
   await fetchPropertyDetails(propertyId)
   await fetchPropertyContext(propertyId)
 }
@@ -385,8 +392,17 @@ const handleOpenReserveModal = (room) => {
 }
 
 .superhost-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   color: var(--colors-muted);
+}
+
+.superhost-star-svg {
+  width: 12px;
+  height: 12px;
+  color: #f59e0b;
 }
 
 .host-bio {

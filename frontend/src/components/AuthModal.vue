@@ -5,17 +5,11 @@
       <div class="auth-header">
         <div class="header-brand-box">
           <img
-            v-if="resolvedLogo && !logoFailed"
-            :src="resolvedLogo"
+            :src="logoFailed ? '/hotel-brand-logo.svg' : (resolvedLogo || '/hotel-brand-logo.svg')"
             :alt="resolvedMerchantName"
             class="merchant-brand-logo"
             @error="logoFailed = true"
           />
-          <div v-else class="fallback-brand-icon">
-            <div class="brand-avatar-seal">
-              {{ resolvedCorporateName.slice(0, 2).toUpperCase() }}
-            </div>
-          </div>
 
           <div class="brand-text-block">
             <div class="brand-corp-label">{{ resolvedCorporateName }}</div>
@@ -23,7 +17,12 @@
           </div>
         </div>
 
-        <button class="close-btn" @click="closeAuthModal" title="Close">✕</button>
+        <button class="close-btn" @click="closeAuthModal" title="Close" aria-label="Close auth dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-dialog-svg">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       <div class="auth-body">
@@ -52,7 +51,12 @@
           <form @submit.prevent="handlePasswordLogin" class="form-unified">
             <!-- Email Input -->
             <div class="input-field-wrap">
-              <span class="input-icon">✉</span>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </span>
               <input
                 v-model="loginEmail"
                 type="email"
@@ -64,7 +68,12 @@
 
             <!-- Password Input with Toggle -->
             <div class="input-field-wrap">
-              <span class="input-icon">🔒</span>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
               <input
                 v-model="loginPassword"
                 :type="showPassword ? 'text' : 'password'"
@@ -77,8 +86,18 @@
                 class="btn-toggle-eye"
                 @click="showPassword = !showPassword"
                 :title="showPassword ? 'Hide password' : 'Show password'"
+                aria-label="Toggle password visibility"
               >
-                {{ showPassword ? '🙈' : '👁️' }}
+                <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-svg">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                  <line x1="2" y1="2" x2="22" y2="22" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-svg">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
               </button>
             </div>
 
@@ -113,8 +132,9 @@
             <!-- Official Google Identity Services Mount Element -->
             <div id="google-btn-mount" class="google-mount-wrapper"></div>
 
-            <!-- Native Airbnb Style Google Button -->
+            <!-- Native Google Button (Fallback if GSI iframe not loaded) -->
             <button
+              v-if="!isGoogleGsiRendered"
               type="button"
               class="btn-google-sso"
               :disabled="isLoading"
@@ -172,7 +192,12 @@
           <!-- Step A: Enter Email -->
           <form v-if="!otpRequested" @submit.prevent="handleRequestOtp" class="form-unified">
             <div class="input-field-wrap">
-              <span class="input-icon">✉</span>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </span>
               <input
                 v-model="otpEmail"
                 type="email"
@@ -287,7 +312,12 @@
 
             <!-- Email -->
             <div class="input-field-wrap">
-              <span class="input-icon">✉</span>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </span>
               <input
                 v-model="regEmail"
                 type="email"
@@ -299,7 +329,12 @@
 
             <!-- Phone -->
             <div class="input-field-wrap">
-              <span class="input-icon">📱</span>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+                  <path d="M12 18h.01" />
+                </svg>
+              </span>
               <input
                 v-model="regPhone"
                 type="tel"
@@ -311,7 +346,12 @@
 
             <!-- Password -->
             <div class="input-field-wrap">
-              <span class="input-icon">🔒</span>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
               <input
                 v-model="regPassword"
                 type="password"
@@ -362,6 +402,7 @@ import { useAuth } from '../composables/useAuth'
 import { useBooking } from '../composables/useBooking'
 
 const GOOGLE_CLIENT_ID = '659157255403-l6fikllu69q2h18bc6e33rn0rekuogd7.apps.googleusercontent.com'
+const isGoogleGsiRendered = ref(false)
 
 const {
   isAuthModalOpen,
@@ -498,20 +539,25 @@ const initGoogleAuth = () => {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredentialResponse,
         auto_select: false,
+        use_fedcm_for_prompt: true,
       })
 
       const mountEl = document.getElementById('google-btn-mount')
       if (mountEl) {
+        mountEl.innerHTML = ''
         window.google.accounts.id.renderButton(mountEl, {
           theme: 'outline',
           size: 'large',
-          width: 380,
+          width: mountEl.offsetWidth || 340,
           text: 'continue_with',
           shape: 'rectangular',
+          logo_alignment: 'left',
         })
+        isGoogleGsiRendered.value = true
       }
     } catch (err) {
       console.warn('Google GSI notice:', err.message)
+      isGoogleGsiRendered.value = false
     }
   }
 }
@@ -527,12 +573,28 @@ const handleGoogleCredentialResponse = async (res) => {
 }
 
 const triggerGoogleLogin = () => {
+  authError.value = ''
+
+  // Attempt to trigger the native rendered Google button if mounted
+  const renderedBtn = document.querySelector('#google-btn-mount [role="button"], #google-btn-mount iframe')
+  if (renderedBtn) {
+    renderedBtn.click()
+    return
+  }
+
+  // If prompt is called, handle One Tap notification events accurately
   if (window.google?.accounts?.id) {
     window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        const reason = notification.getNotDisplayedReason?.() || notification.getSkippedReason?.() || 'origin_or_cookie_blocked'
-        console.warn('Google GSI prompt blocked or skipped:', reason)
-        authError.value = 'Origin http://localhost:5173 belum terdaftar di Authorized JavaScript Origins Google Cloud Console. Silakan gunakan tombol Dev 1-Click SSO di bawah untuk simulasi login instan.'
+      if (notification.isSkippedMoment()) {
+        const reason = notification.getSkippedReason?.() || ''
+        console.warn('Google GSI prompt skipped reason:', reason)
+        if (reason === 'suppressed_by_user') {
+          authError.value = 'Google One Tap sedang dalam masa cooldown browser (karena sebelumnya pernah ditutup). Silakan klik tombol resmi Google di atas atau gunakan Dev 1-Click SSO.'
+        } else if (reason === 'origin_or_cookie_blocked') {
+          authError.value = 'Browser memblokir third-party cookies atau tracking Google. Silakan periksa pengaturan adblocker/privasi browser atau gunakan Dev 1-Click SSO.'
+        } else {
+          authError.value = `Google One Tap dilewati (${reason}). Silakan gunakan tombol Dev 1-Click SSO.`
+        }
       }
     })
   } else {
@@ -789,9 +851,21 @@ const handleRegisterSubmit = async () => {
 .input-icon {
   position: absolute;
   left: 12px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--colors-muted);
   pointer-events: none;
+}
+
+.field-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.close-dialog-svg {
+  width: 14px;
+  height: 14px;
 }
 
 .airbnb-input {
@@ -815,11 +889,23 @@ const handleRegisterSubmit = async () => {
 .btn-toggle-eye {
   position: absolute;
   right: 12px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--colors-muted);
   background: none;
   border: none;
   cursor: pointer;
+  padding: 4px;
+}
+
+.btn-toggle-eye:hover {
+  color: var(--colors-ink);
+}
+
+.eye-svg {
+  width: 16px;
+  height: 16px;
 }
 
 .two-col-grid {
@@ -929,9 +1015,10 @@ const handleRegisterSubmit = async () => {
 }
 
 .google-mount-wrapper {
-  display: none; /* Auto-unhidden if GSI renders successfully */
+  display: flex;
   width: 100%;
   justify-content: center;
+  min-height: 44px;
 }
 
 .demo-sso-strip {

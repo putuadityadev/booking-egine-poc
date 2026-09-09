@@ -53,4 +53,6 @@ Route::prefix('extranet')->group(function () {
     Route::get('/properties/{id}', [ExtranetController::class, 'show']);
     Route::put('/properties/{id}', [ExtranetController::class, 'update']);
     Route::post('/properties/{id}/test-connection', [ExtranetController::class, 'testConnection']);
+    Route::get('/properties/{id}/tiers', [ExtranetController::class, 'getTiers']);
+    Route::put('/properties/{id}/rooms/{roomId}/rate-plan', [ExtranetController::class, 'updateRoomRatePlan']);
 });

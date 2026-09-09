@@ -3,7 +3,12 @@
     <div class="booking-dialog-card">
       <!-- Modal Header -->
       <div class="dialog-header">
-        <button class="close-btn" @click="closeBookingModal" title="Close">✕</button>
+        <button class="close-btn" @click="closeBookingModal" title="Close" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
         <h3 class="dialog-title">Review and Confirm Reservation</h3>
         <div class="header-spacer"></div>
       </div>
@@ -84,7 +89,10 @@
               <!-- Member Discount -->
               <div v-if="isLoggedIn && discountAmount > 0" class="price-row discount-row">
                 <span class="discount-label">
-                  💎 {{ memberTier }} Member Discount ({{ tierDiscountPercent }}%)
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="perk-inline-svg">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  <span>{{ memberTier }} Member Discount ({{ tierDiscountPercent }}%)</span>
                 </span>
                 <span class="discount-value">- IDR {{ formatCurrency(discountAmount) }}</span>
               </div>
@@ -139,7 +147,11 @@
 
               <!-- Loyalty Reward Projection Banner -->
               <div class="loyalty-projection-banner" :class="{ 'highlight': isLoggedIn }">
-                <div class="star-badge">💎</div>
+                <div class="star-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="perk-badge-svg">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </div>
                 <div class="projection-text">
                   <div class="projection-title">
                     <template v-if="isLoggedIn">
@@ -166,15 +178,34 @@
               {{ bookingError }}
             </div>
 
-            <!-- Confirm Action -->
-            <button
-              class="btn-primary btn-block btn-confirm"
-              :disabled="isSubmittingBooking || !guestName || !guestEmail"
-              @click="handleConfirmReservation"
-            >
-              <span v-if="isSubmittingBooking">Reserving & Crediting Points...</span>
-              <span v-else>Confirm and Book (IDR {{ formatCurrency(grandTotal) }})</span>
-            </button>
+            <!-- Action Buttons: Add to Cart and Confirm & Book -->
+            <div class="modal-actions-grid">
+              <button
+                type="button"
+                class="btn-modal-action btn-add-to-cart"
+                @click="handleAddToCartFromModal"
+              >
+                <svg class="action-btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                  <path d="M3 6h18" />
+                  <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+                <span>Add to Cart</span>
+              </button>
+
+              <button
+                type="button"
+                class="btn-modal-action btn-confirm-book"
+                :disabled="isSubmittingBooking || !guestName || !guestEmail"
+                @click="handleDirectCheckoutFromModal"
+              >
+                <span>Confirm &amp; Book</span>
+                <svg class="action-btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </button>
+            </div>
             <p class="cancellation-policy-hint">
               Free cancellation up to 48 hours before check-in. Instant confirmation.
             </p>
@@ -187,8 +218,13 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useBooking } from '../composables/useBooking'
+import { useCart } from '../composables/useCart'
+
+const router = useRouter()
+const { addToCart, openCart } = useCart()
 
 const {
   isLoggedIn,
@@ -310,6 +346,44 @@ const potentialPoints = computed(() => {
 const formatCurrency = (val) => {
   if (isNaN(val)) return '0'
   return new Intl.NumberFormat('id-ID').format(Math.round(val))
+}
+
+const handleAddToCartFromModal = () => {
+  if (!selectedRoomForBooking.value) return
+
+  addToCart(selectedRoomForBooking.value, activeProperty.value, {
+    checkIn: localCheckIn.value,
+    checkOut: localCheckOut.value,
+    nights: calculatedNights.value,
+    guests: localGuests.value,
+    guestName: guestName.value.trim(),
+    guestEmail: guestEmail.value.trim(),
+    guestPhone: guestPhone.value.trim(),
+    isMember: isLoggedIn.value,
+    memberTier: memberTier.value,
+  })
+
+  closeBookingModal()
+  openCart()
+}
+
+const handleDirectCheckoutFromModal = () => {
+  if (!selectedRoomForBooking.value) return
+
+  addToCart(selectedRoomForBooking.value, activeProperty.value, {
+    checkIn: localCheckIn.value,
+    checkOut: localCheckOut.value,
+    nights: calculatedNights.value,
+    guests: localGuests.value,
+    guestName: guestName.value.trim(),
+    guestEmail: guestEmail.value.trim(),
+    guestPhone: guestPhone.value.trim(),
+    isMember: isLoggedIn.value,
+    memberTier: memberTier.value,
+  })
+
+  closeBookingModal()
+  router.push('/checkout')
 }
 
 const handleConfirmReservation = async () => {
@@ -701,10 +775,75 @@ const handleConfirmReservation = async () => {
   margin-top: 2px;
 }
 
-.btn-confirm {
-  width: 100%;
-  height: 52px;
-  font-size: 15px;
+.modal-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.btn-modal-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-add-to-cart {
+  background: var(--colors-canvas);
+  color: var(--colors-ink);
+  border: 1.5px solid var(--colors-ink);
+}
+
+.btn-add-to-cart:hover {
+  background: var(--colors-subtle, #f5f5f5);
+}
+
+.btn-confirm-book {
+  background: var(--colors-ink);
+  color: #fff;
+  border: 1.5px solid var(--colors-ink);
+}
+
+.btn-confirm-book:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-confirm-book:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.perk-inline-svg {
+  width: 13px;
+  height: 13px;
+  color: #701a75;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.perk-badge-svg {
+  width: 18px;
+  height: 18px;
+  color: #701a75;
+}
+
+.close-svg {
+  width: 16px;
+  height: 16px;
 }
 
 .cancellation-policy-hint {
@@ -726,6 +865,10 @@ const handleConfirmReservation = async () => {
 
 @media (max-width: 744px) {
   .dialog-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions-grid {
     grid-template-columns: 1fr;
   }
 }

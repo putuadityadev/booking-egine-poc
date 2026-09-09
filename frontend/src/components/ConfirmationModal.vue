@@ -23,7 +23,11 @@
 
         <!-- Loyalty Points Awarded Card -->
         <div v-if="confirmedReservation.membership?.points_earned" class="points-awarded-card">
-          <div class="points-sparkle-badge">💎</div>
+          <div class="points-sparkle-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </div>
           <div class="points-info">
             <div class="points-title">
               +{{ confirmedReservation.membership.points_earned }} Club Points Awarded!
@@ -206,7 +210,20 @@ const formatCurrency = (val) => {
 }
 
 .points-sparkle-badge {
-  font-size: 28px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ddd6fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6d28d9;
+  flex-shrink: 0;
+}
+
+.sparkle-svg {
+  width: 22px;
+  height: 22px;
 }
 
 .points-title {

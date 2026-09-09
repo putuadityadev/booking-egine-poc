@@ -40,16 +40,22 @@
         class="nav-arrow prev"
         @click.stop="currentPhotoIndex--"
         title="Previous photo"
+        aria-label="Previous photo"
       >
-        ‹
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="arrow-svg">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
       </button>
       <button
         v-if="allPhotos.length > 1 && currentPhotoIndex < allPhotos.length - 1"
         class="nav-arrow next"
         @click.stop="currentPhotoIndex++"
         title="Next photo"
+        aria-label="Next photo"
       >
-        ›
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="arrow-svg">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
       </button>
     </div>
 
@@ -77,7 +83,7 @@
 
       <div class="divider"></div>
 
-      <!-- Pricing & Reserve Row -->
+      <!-- Pricing & Add to Cart Row -->
       <div class="pricing-reserve-row">
         <div class="pricing-block">
           <!-- Member Logged In Pricing -->
@@ -90,7 +96,10 @@
               <span class="price-unit">/ night</span>
             </div>
             <div class="loyalty-perk-chip">
-              💎 {{ memberTier }} ({{ tierDiscountPercent }}% off) • +{{ estimatedPoints }} Pts
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="perk-svg">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span>{{ memberTier }} ({{ tierDiscountPercent }}% off) • +{{ estimatedPoints }} Pts</span>
             </div>
           </template>
 
@@ -110,8 +119,12 @@
           </template>
         </div>
 
-        <button class="btn-primary btn-reserve" @click="$emit('reserve', room)">
-          Reserve
+        <button class="btn-primary btn-reserve" @click="handleSelectRoom">
+          <span>Reserve</span>
+          <svg class="arrow-btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
         </button>
       </div>
     </div>
@@ -121,6 +134,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { useCart } from '../composables/useCart'
+import { useBooking } from '../composables/useBooking'
 
 const props = defineProps({
   room: {
@@ -129,11 +144,22 @@ const props = defineProps({
   }
 })
 
-defineEmits(['reserve'])
+const emit = defineEmits(['reserve'])
 
 const { isLoggedIn, memberTier, openAuthModal, calculatePoints } = useAuth()
+const { cartItems } = useCart()
+const { activeProperty, checkIn, checkOut, nights, guests } = useBooking()
+
 const isLiked = ref(false)
 const currentPhotoIndex = ref(0)
+
+const isItemInCart = computed(() => {
+  return cartItems.value.some((item) => item.roomId === props.room.id)
+})
+
+const handleSelectRoom = () => {
+  emit('reserve', props.room)
+}
 
 const allPhotos = computed(() => {
   const list = []
@@ -422,6 +448,9 @@ const formatCurrency = (val) => {
 }
 
 .loyalty-perk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   font-weight: 600;
   color: #6d28d9;
@@ -430,6 +459,16 @@ const formatCurrency = (val) => {
   border-radius: 4px;
   margin-top: 4px;
   white-space: nowrap;
+}
+
+.perk-svg {
+  width: 12px;
+  height: 12px;
+}
+
+.arrow-svg {
+  width: 14px;
+  height: 14px;
 }
 
 .guest-member-hint {
@@ -470,9 +509,20 @@ const formatCurrency = (val) => {
 }
 
 .btn-reserve {
-  padding: 10px 20px;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
   border-radius: 8px;
   box-shadow: none;
+  white-space: nowrap;
+}
+
+.cart-btn-svg,
+.arrow-btn-svg {
+  width: 14px;
+  height: 14px;
 }
 </style>

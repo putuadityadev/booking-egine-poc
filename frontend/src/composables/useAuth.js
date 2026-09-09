@@ -13,6 +13,8 @@ export function useAuth() {
   const bffUrl = import.meta.env.VITE_BFF_API_URL || 'http://localhost:8002'
 
   const isLoggedIn = computed(() => !!token.value && !!memberProfile.value)
+  const isAuthenticated = isLoggedIn
+  const member = memberProfile
 
   const memberTier = computed(() => {
     return memberProfile.value?.tier?.name || 'Diamond'
@@ -358,6 +360,8 @@ export function useAuth() {
     pointPlan,
     calculatePoints,
     isLoggedIn,
+    isAuthenticated,
+    member,
     memberTier,
     memberPoints,
     memberName,

@@ -71,19 +71,28 @@ class MembershipOAuthService
     /**
      * Test OAuth 2.1 credentials and tenant connection health.
      */
-    public function testConnection(string $clientId, string $clientSecret, string $tenantDomain, string $merchantId): array
+    public function testConnection(string $clientId, string $clientSecret, string $tenantDomain, ?string $merchantId = null): array
     {
         $response = Http::withHeaders($this->getHeaders($tenantDomain))
             ->get("{$this->baseUrl}/api/v2/oauth/property-context/{$clientId}");
 
         $context = $this->handleResponse($response, 'OAUTH.CONNECTION_TEST_FAILED');
+        $data = $context['data'] ?? $context;
+
+        // Auto-resolve merchant_id from branch.id or merchant.id if not provided
+        $resolvedMerchantId = !empty($merchantId)
+            ? $merchantId
+            : ($data['branch']['id'] ?? $data['merchant']['id'] ?? null);
+
+        $resolvedCorporateId = $data['corporate']['id'] ?? null;
 
         return [
             'connected' => true,
             'tenant_domain' => $tenantDomain,
             'client_id' => $clientId,
-            'merchant_id' => $merchantId,
-            'context' => $context['data'] ?? $context,
+            'merchant_id' => $resolvedMerchantId,
+            'corporate_id' => $resolvedCorporateId,
+            'context' => $data,
         ];
     }
 

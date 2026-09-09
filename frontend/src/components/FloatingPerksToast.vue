@@ -9,7 +9,9 @@
       <!-- Guest Mode: 20% Off Room Rates & Reward Points Incentive -->
       <template v-if="!isLoggedIn">
         <div class="toast-icon-wrap">
-          <span class="perk-emoji">✨</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="perk-toast-svg">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
         </div>
 
         <div class="toast-content" @click="handleOpenSignIn">
@@ -18,7 +20,7 @@
             <span class="toast-tag">20% Off</span>
           </div>
           <p class="toast-desc">
-            Unlock exclusive rates & earn reward points on every stay.
+            Unlock exclusive rates &amp; earn reward points on every stay.
           </p>
         </div>
 
@@ -26,8 +28,11 @@
           <button class="btn-toast-signin" @click="handleOpenSignIn">
             Sign In
           </button>
-          <button class="btn-toast-dismiss" @click="dismissToast" title="Dismiss">
-            ✕
+          <button class="btn-toast-dismiss" @click="dismissToast" title="Dismiss" aria-label="Dismiss toast">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dismiss-svg">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </template>
@@ -35,7 +40,9 @@
       <!-- Authenticated Member Mode: Compact Status Pill -->
       <template v-else>
         <div class="toast-icon-wrap member-tier-icon">
-          <span class="perk-emoji">💎</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="perk-toast-svg">
+            <path d="M6 3h12l4 6-10 12L2 9z" />
+          </svg>
         </div>
 
         <div class="toast-content">
@@ -49,8 +56,11 @@
         </div>
 
         <div class="toast-actions">
-          <button class="btn-toast-dismiss" @click="dismissToast" title="Dismiss">
-            ✕
+          <button class="btn-toast-dismiss" @click="dismissToast" title="Dismiss" aria-label="Dismiss toast">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dismiss-svg">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </template>
@@ -151,8 +161,19 @@ const handleOpenSignIn = () => {
   background: #f5f3ff;
 }
 
-.perk-emoji {
-  font-size: 16px;
+.perk-toast-svg {
+  width: 16px;
+  height: 16px;
+  color: var(--colors-primary);
+}
+
+.toast-icon-wrap.member-tier-icon .perk-toast-svg {
+  color: #7c3aed;
+}
+
+.dismiss-svg {
+  width: 11px;
+  height: 11px;
 }
 
 .toast-content {

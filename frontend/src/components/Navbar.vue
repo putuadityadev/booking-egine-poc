@@ -1,16 +1,83 @@
 <template>
   <header class="navbar-wrapper">
     <div class="container navbar-container">
-      <!-- Brand Logo -->
-      <div class="navbar-brand" @click="activeTab = 'stays'">
-        <svg class="brand-icon" viewBox="0 0 32 32" fill="none">
-          <path d="M16 1.5c-4.7 0-9.2 2.8-11.2 7.1-2 4.4-1.2 9.5 2 13.1l8.5 9.4c.4.4 1 .4 1.4 0l8.5-9.4c3.2-3.6 4-8.7 2-13.1C25.2 4.3 20.7 1.5 16 1.5zm0 15.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z" fill="#FF385C" />
-        </svg>
-        <span class="brand-title">stayhub</span>
-        <span class="brand-poc-tag">POC</span>
+      <!-- Left: Dynamic Hotel Property Logo & Name with Mini Dropdown Switcher -->
+      <div class="navbar-left">
+        <div class="property-brand-zone">
+          <!-- Property Logo & Name (Click to reset to stays tab) -->
+          <div class="property-brand-main" @click="activeTab = 'stays'">
+            <img
+              :src="currentPropertyLogo"
+              :alt="activeProperty?.name || 'Sanctuary Logo'"
+              class="property-logo-img"
+              @error="handleLogoError"
+            />
+            <div class="property-naming">
+              <span class="property-name-title">{{ activeProperty?.name || 'Unagi Mas Villas Ubud' }}</span>
+              <span class="property-location-sub">{{ activeProperty?.city || 'Ubud, Bali' }}</span>
+            </div>
+          </div>
+
+          <!-- Mini Dropdown Trigger Button ("dropdown kecil") -->
+          <div class="property-switcher-wrapper">
+            <button
+              type="button"
+              class="btn-mini-property-toggle"
+              :class="{ 'is-active': isPropertyMenuOpen }"
+              @click.stop="isPropertyMenuOpen = !isPropertyMenuOpen"
+              title="Switch Hotel Sanctuary"
+              aria-label="Switch hotel sanctuary"
+            >
+              <svg
+                class="chevron-mini-svg"
+                :class="{ 'rotated': isPropertyMenuOpen }"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            <!-- Compact Property Switcher Dropdown Menu -->
+            <div v-if="isPropertyMenuOpen" class="property-compact-menu" @click.stop>
+              <div class="compact-menu-header">Select Hotel Sanctuary</div>
+              <div class="compact-menu-list">
+                <button
+                  v-for="prop in properties"
+                  :key="prop.id"
+                  type="button"
+                  class="compact-prop-item"
+                  :class="{ selected: prop.id === activePropertyId }"
+                  @click="handlePropertySwitch(prop.id)"
+                >
+                  <img :src="getPropertyLogo(prop)" :alt="prop.name" class="compact-prop-logo" />
+                  <div class="compact-prop-text">
+                    <div class="compact-prop-name">{{ prop.name }}</div>
+                    <div class="compact-prop-location">
+                      <span>{{ prop.city }}</span>
+                      <template v-if="prop.review_score">
+                        <span class="dot-sep">&bull;</span>
+                        <span class="rating-val">&starf; {{ prop.review_score }}</span>
+                      </template>
+                    </div>
+                  </div>
+                  <div v-if="prop.id === activePropertyId" class="selected-check-indicator">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="check-mini-svg">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Center Product Tabs -->
+      <!-- Center: Clean Product Navigation Tabs -->
       <nav class="navbar-tabs">
         <button
           class="nav-tab"
@@ -35,63 +102,20 @@
           <span>Experiences</span>
           <span class="badge-new">NEW</span>
         </button>
-
-        <!-- Property Switcher Dropdown -->
-        <div class="property-dropdown-wrapper">
-          <button class="nav-tab property-select-btn" @click="isPropertyMenuOpen = !isPropertyMenuOpen">
-            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="9" y1="3" x2="9" y2="21"></line>
-            </svg>
-            <span class="property-active-name">{{ activeProperty?.name || 'Select Hotel' }}</span>
-            <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-
-          <div v-if="isPropertyMenuOpen" class="property-dropdown-menu">
-            <div class="dropdown-header">Switch Hotel Property</div>
-            <button
-              v-for="prop in properties"
-              :key="prop.id"
-              class="property-menu-item"
-              :class="{ selected: prop.id === activePropertyId }"
-              @click="handlePropertySwitch(prop.id)"
-            >
-              <img :src="prop.image_url" :alt="prop.name" class="prop-thumb" />
-              <div class="prop-info">
-                <div class="prop-name">{{ prop.name }}</div>
-                <div class="prop-city">{{ prop.city }} • ★ {{ prop.review_score }}</div>
-              </div>
-              <span v-if="prop.has_membership" class="club-chip">Club</span>
-            </button>
-            <div class="dropdown-divider"></div>
-            <router-link to="/extranet" class="extranet-dropdown-btn" @click="isPropertyMenuOpen = false">
-              <span>⚙ Extranet Channel Setup</span>
-              <span class="arrow">→</span>
-            </router-link>
-          </div>
-        </div>
       </nav>
 
-      <!-- Right Account Utilities -->
+      <!-- Right: Prominent Member Sign In (Primary Button) / Logged-in Profile -->
       <div class="navbar-actions">
-        <!-- Extranet Link Button -->
-        <router-link to="/extranet" class="btn-extranet-nav" title="Manage PMS and OAuth Credentials">
-          <span>Extranet</span>
-        </router-link>
-
-        <!-- Club Status Pill (Refined Luxury Sanctuary Chip) -->
-        <div v-if="activeProperty?.has_membership" class="club-status-pill">
-          <span class="club-diamond-icon">💎</span>
-          <span>Jeevawasa Sanctuary</span>
-        </div>
-
         <!-- Logged In Member State -->
         <div v-if="isLoggedIn" class="user-profile-wrapper">
-          <button class="user-pill-btn logged-in" @click="isUserMenuOpen = !isUserMenuOpen">
+          <button class="user-pill-btn logged-in" @click.stop="isUserMenuOpen = !isUserMenuOpen">
             <div class="tier-indicator" :class="tierClass">{{ memberTier }}</div>
-            <div class="points-pill">💎 {{ memberPoints }} Pts</div>
+            <div class="points-pill">
+              <svg class="points-pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span>{{ memberPoints }} Pts</span>
+            </div>
             <div class="user-avatar-circle">
               <img
                 v-if="memberProfile?.avatar_url"
@@ -104,7 +128,7 @@
           </button>
 
           <!-- User Dropdown Menu -->
-          <div v-if="isUserMenuOpen" class="user-dropdown-menu">
+          <div v-if="isUserMenuOpen" class="user-dropdown-menu" @click.stop>
             <div class="user-card-header">
               <div class="user-name">{{ memberName }}</div>
               <div class="user-email">{{ memberEmail }}</div>
@@ -119,8 +143,8 @@
               <span class="meta-value">{{ memberProfile?.member?.member_code || 'MBR-7JWRY7' }}</span>
             </div>
             <div class="dropdown-meta-item">
-              <span class="meta-label">Club Tenant:</span>
-              <span class="meta-value">{{ activeProperty?.membership?.tenant_domain || 'jeevawasa.localhost' }}</span>
+              <span class="meta-label">Loyalty Club:</span>
+              <span class="meta-value">{{ activeProperty?.name || 'Jeevawasa Sanctuary' }}</span>
             </div>
             <div class="dropdown-divider"></div>
             <button class="dropdown-logout-btn" @click="handleLogout">
@@ -134,12 +158,11 @@
           </div>
         </div>
 
-        <!-- Guest State (Not Logged In) -->
+        <!-- Guest State: Prominent Primary Action Button -->
         <div v-else class="guest-login-group">
-          <button class="btn-guest-login" @click="openAuthModal('otp')">
-            <svg class="user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
+          <button class="btn-guest-login-primary" @click="openAuthModal('otp')">
+            <svg class="signin-diamond-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             <span>Member Sign In</span>
           </button>
@@ -150,7 +173,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useBooking } from '../composables/useBooking'
@@ -178,6 +201,45 @@ const {
 
 const isPropertyMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
+
+// Close dropdowns on outside click
+const handleClickOutside = () => {
+  isPropertyMenuOpen.value = false
+  isUserMenuOpen.value = false
+}
+
+onMounted(() => {
+  window.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', handleClickOutside)
+})
+
+// Property logo map linking property id or code to generated transparent png logo
+const propertyLogos = {
+  5: '/logos/unagi-mas.png',
+  6: '/logos/adiwana-alas-harum.png',
+  7: '/logos/adiwana-svarga-loka.png',
+  8: '/logos/grand-sahid.png',
+  'UMV-UBUD': '/logos/unagi-mas.png',
+  'AAH-UBUD': '/logos/adiwana-alas-harum.png',
+  'ASL-UBUD': '/logos/adiwana-svarga-loka.png',
+  'GSH-JKT': '/logos/grand-sahid.png',
+}
+
+const getPropertyLogo = (prop) => {
+  if (!prop) return '/logos/unagi-mas.png'
+  return propertyLogos[prop.id] || propertyLogos[prop.code] || '/hotel-brand-logo.svg'
+}
+
+const currentPropertyLogo = computed(() => {
+  return getPropertyLogo(activeProperty.value)
+})
+
+const handleLogoError = (e) => {
+  e.target.src = '/hotel-brand-logo.svg'
+}
 
 const tierClass = computed(() => {
   const tier = (memberTier.value || '').toLowerCase()
@@ -209,8 +271,8 @@ const handleLogout = async () => {
 <style scoped>
 .navbar-wrapper {
   height: 80px;
-  background-color: var(--colors-canvas);
-  border-bottom: 1px solid var(--colors-hairline-soft);
+  background-color: var(--colors-canvas, #ffffff);
+  border-bottom: 1px solid var(--colors-hairline-soft, #ebebeb);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -221,281 +283,301 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 20px;
 }
 
-/* Brand */
-.navbar-brand {
+/* Left: Property Branding & Mini Dropdown */
+.navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.property-brand-zone {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+}
+
+.property-brand-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
   user-select: none;
 }
 
-.brand-icon {
-  width: 34px;
-  height: 34px;
+.property-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
-.brand-title {
-  font-size: 22px;
+.property-naming {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.property-name-title {
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--colors-primary);
+  color: var(--colors-ink, #1a1a1a);
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.brand-poc-tag {
-  background: var(--colors-surface-strong);
-  color: var(--colors-muted);
-  font-size: 10px;
+.property-location-sub {
+  font-size: 11px;
+  color: var(--colors-muted, #717171);
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Mini Switcher Toggle Button ("dropdown kecil") */
+.property-switcher-wrapper {
+  position: relative;
+}
+
+.btn-mini-property-toggle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--colors-canvas, #ffffff);
+  border: 1px solid var(--colors-hairline, #e0e0e0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.btn-mini-property-toggle:hover {
+  background: #f1f5f9;
+  border-color: var(--colors-ink, #1a1a1a);
+  color: var(--colors-ink, #1a1a1a);
+}
+
+.chevron-mini-svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.2s ease;
+}
+
+.chevron-mini-svg.rotated {
+  transform: rotate(180deg);
+}
+
+/* Compact Dropdown Menu */
+.property-compact-menu {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  width: 320px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--colors-hairline, #e0e0e0);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  z-index: 200;
+}
+
+.compact-menu-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #64748b;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 4px;
 }
 
-/* Tabs */
+.compact-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compact-prop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.compact-prop-item:hover {
+  background-color: #f8fafc;
+}
+
+.compact-prop-item.selected {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.compact-prop-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.compact-prop-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.compact-prop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--colors-ink, #1a1a1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-prop-location {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.dot-sep {
+  color: #94a3b8;
+}
+
+.rating-val {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.selected-check-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.check-mini-svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Center Tabs */
 .navbar-tabs {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .nav-tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  font-size: 15px;
+  padding: 10px 18px;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--colors-muted);
+  color: var(--colors-muted, #717171);
   position: relative;
-  transition: color 0.2s ease;
-  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .nav-tab:hover {
-  color: var(--colors-ink);
-  background-color: var(--colors-surface-soft);
+  color: var(--colors-ink, #1a1a1a);
+  background-color: #f8fafc;
 }
 
 .nav-tab.active {
-  color: var(--colors-ink);
-  font-weight: 600;
+  color: var(--colors-ink, #1a1a1a);
+  font-weight: 700;
 }
 
 .nav-tab.active::after {
   content: '';
   position: absolute;
   bottom: -16px;
-  left: 16px;
-  right: 16px;
+  left: 18px;
+  right: 18px;
   height: 2px;
-  background-color: var(--colors-ink);
+  background-color: var(--colors-ink, #1a1a1a);
 }
 
 .tab-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
-/* Property Dropdown */
-.property-dropdown-wrapper {
-  position: relative;
-}
-
-.property-select-btn {
-  background-color: var(--colors-surface-soft);
-  border: 1px solid var(--colors-hairline);
-  color: var(--colors-ink);
-}
-
-.property-active-name {
-  max-width: 180px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chevron-icon {
-  width: 14px;
-  height: 14px;
-  color: var(--colors-muted);
-}
-
-.property-dropdown-menu {
-  position: absolute;
-  top: 52px;
-  left: 0;
-  width: 320px;
-  background: var(--colors-canvas);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--colors-hairline);
-  box-shadow: none;
-  padding: 8px;
-  z-index: 100;
-}
-
-.dropdown-header {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--colors-muted);
-  font-weight: 700;
-  padding: 6px 10px;
-}
-
-.property-menu-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  text-align: left;
-  transition: background-color 0.15s ease;
-}
-
-.property-menu-item:hover {
-  background-color: var(--colors-surface-soft);
-}
-
-.property-menu-item.selected {
-  background-color: #fff1f2;
-}
-
-.prop-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
-.prop-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.prop-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--colors-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.prop-city {
-  font-size: 12px;
-  color: var(--colors-muted);
-}
-
-.club-chip {
-  background: #ede9fe;
-  color: #6d28d9;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
+.badge-new {
+  font-size: 9px;
+  font-weight: 800;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 1px 5px;
   border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
-/* Actions */
+/* Right Actions */
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
 }
 
-.club-status-pill {
+/* Prominent Primary Member Sign In Button */
+.btn-guest-login-primary {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--colors-surface-soft);
-  color: var(--colors-ink);
-  border: 1px solid var(--colors-hairline-soft);
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.club-diamond-icon {
-  font-size: 11px;
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #22c55e;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-}
-
-.btn-extranet-nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 700;
-  transition: all 0.15s ease;
-}
-
-.btn-extranet-nav:hover {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: #0f172a;
-}
-
-.extranet-dropdown-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #4338ca;
-  background: #eef2ff;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s ease;
-  text-decoration: none;
-}
-
-.extranet-dropdown-btn:hover {
-  background: #e0e7ff;
-}
-
-/* Guest Button */
-.btn-guest-login {
-  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--colors-hairline);
-  background: var(--colors-canvas);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--colors-ink);
+  padding: 10px 22px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--colors-ink, #1a1a1a);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
   box-shadow: none;
-  transition: border-color 0.2s ease;
 }
 
-.btn-guest-login:hover {
-  border-color: var(--colors-ink);
+.btn-guest-login-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-.user-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--colors-muted);
+.signin-diamond-svg {
+  width: 15px;
+  height: 15px;
+  color: #f59e0b;
 }
 
-/* Member State */
+/* Logged-In User Profile Pill */
 .user-profile-wrapper {
   position: relative;
 }
@@ -505,15 +587,16 @@ const handleLogout = async () => {
   align-items: center;
   gap: 10px;
   padding: 6px 8px 6px 14px;
-  background: var(--colors-canvas);
-  border: 1px solid var(--colors-hairline);
-  border-radius: var(--radius-full);
+  background: var(--colors-canvas, #ffffff);
+  border: 1px solid var(--colors-hairline, #e0e0e0);
+  border-radius: var(--radius-full, 9999px);
   box-shadow: none;
+  cursor: pointer;
   transition: border-color 0.2s ease;
 }
 
 .user-pill-btn:hover {
-  border-color: var(--colors-ink);
+  border-color: var(--colors-ink, #1a1a1a);
 }
 
 .tier-indicator {
@@ -523,20 +606,29 @@ const handleLogout = async () => {
 }
 
 .points-pill {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--colors-ink);
-  background: var(--colors-surface-soft);
+  color: var(--colors-ink, #1a1a1a);
+  background: #f1f5f9;
   padding: 3px 8px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.points-pill-svg {
+  width: 12px;
+  height: 12px;
+  color: #b45309;
 }
 
 .user-avatar-circle {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--colors-primary);
-  color: white;
+  background: #0f172a;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -554,13 +646,13 @@ const handleLogout = async () => {
 /* User Dropdown */
 .user-dropdown-menu {
   position: absolute;
-  top: 52px;
+  top: 48px;
   right: 0;
   width: 280px;
-  background: var(--colors-canvas);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--colors-hairline);
-  box-shadow: none;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--colors-hairline, #e0e0e0);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   padding: 16px;
   z-index: 110;
 }
@@ -570,14 +662,14 @@ const handleLogout = async () => {
 }
 
 .user-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--colors-ink);
+  color: var(--colors-ink, #1a1a1a);
 }
 
 .user-email {
-  font-size: 13px;
-  color: var(--colors-muted);
+  font-size: 12px;
+  color: var(--colors-muted, #717171);
   margin-bottom: 8px;
 }
 
@@ -588,15 +680,47 @@ const handleLogout = async () => {
   margin-top: 6px;
 }
 
+.badge-member-tier {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.badge-diamond {
+  background: #fdf4ff;
+  color: #86198f;
+  border: 1px solid #f0abfc;
+}
+
+.badge-gold {
+  background: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.badge-silver {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-bronze {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+}
+
 .points-count {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--colors-primary);
+  font-weight: 700;
+  color: #701a75;
 }
 
 .dropdown-divider {
   height: 1px;
-  background: var(--colors-hairline-soft);
+  background: #f1f5f9;
   margin: 10px 0;
 }
 
@@ -608,12 +732,12 @@ const handleLogout = async () => {
 }
 
 .meta-label {
-  color: var(--colors-muted);
+  color: var(--colors-muted, #717171);
 }
 
 .meta-value {
   font-weight: 600;
-  color: var(--colors-ink);
+  color: var(--colors-ink, #1a1a1a);
 }
 
 .dropdown-logout-btn {
@@ -621,11 +745,14 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  font-size: 14px;
+  padding: 8px 10px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--colors-error);
-  border-radius: var(--radius-sm);
+  color: #dc2626;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
@@ -636,5 +763,17 @@ const handleLogout = async () => {
 .logout-icon {
   width: 16px;
   height: 16px;
+}
+
+@media (max-width: 900px) {
+  .property-name-title {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .navbar-tabs {
+    display: none;
+  }
 }
 </style>

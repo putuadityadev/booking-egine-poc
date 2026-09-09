@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use App\Models\MembershipProperty;
+use App\Models\Room;
 use App\Services\MembershipOAuthService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -92,9 +93,26 @@ class ExtranetController extends Controller
             if (!empty($membershipData['client_secret'])) {
                 $membershipProperty->client_secret = $membershipData['client_secret'];
             }
-            $membershipProperty->merchant_id = $membershipData['merchant_id'] ?? $membershipProperty->merchant_id;
             $membershipProperty->x_tenant_domain = $membershipData['x_tenant_domain'] ?? $membershipProperty->x_tenant_domain;
             $membershipProperty->is_active = $membershipData['is_active'] ?? true;
+
+            $merchantId = $membershipData['merchant_id'] ?? $membershipProperty->merchant_id;
+            if (empty($merchantId) && !empty($membershipProperty->client_id) && !empty($membershipProperty->x_tenant_domain)) {
+                try {
+                    $contextResult = $this->oauthService->testConnection(
+                        $membershipProperty->client_id,
+                        $membershipProperty->client_secret ?? '',
+                        $membershipProperty->x_tenant_domain
+                    );
+                    $merchantId = $contextResult['merchant_id'] ?? null;
+                    if (!empty($contextResult['corporate_id'])) {
+                        $membershipProperty->corporate_id = $contextResult['corporate_id'];
+                    }
+                } catch (\Throwable $ctxErr) {
+                    // Retain existing merchant ID if test resolution fails
+                }
+            }
+            $membershipProperty->merchant_id = $merchantId;
             $membershipProperty->save();
         }
 
@@ -129,8 +147,16 @@ class ExtranetController extends Controller
                 $clientId,
                 $clientSecret ?? '',
                 $tenantDomain,
-                $merchantId ?? ''
+                $merchantId
             );
+
+            // Automatically persist resolved merchant and corporate IDs
+            if ($property->membershipProperty && !empty($result['merchant_id'])) {
+                $property->membershipProperty->update([
+                    'merchant_id' => $result['merchant_id'],
+                    'corporate_id' => $result['corporate_id'] ?? $property->membershipProperty->corporate_id,
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -143,6 +169,67 @@ class ExtranetController extends Controller
                 'message' => 'Connection test failed: ' . $e->getMessage(),
             ], 400);
         }
+    }
+
+    /**
+     * Get loyalty tiers resolved from membership platform.
+     */
+    public function getTiers(int $id): JsonResponse
+    {
+        $property = Property::with('membershipProperty')->findOrFail($id);
+
+        $defaultTiers = [
+            ['id' => 'bronze', 'name' => 'Bronze', 'transaction_value_min' => 0],
+            ['id' => 'silver', 'name' => 'Silver', 'transaction_value_min' => 15000000],
+            ['id' => 'gold', 'name' => 'Gold', 'transaction_value_min' => 40000000],
+            ['id' => 'diamond', 'name' => 'Diamond', 'transaction_value_min' => 100000000],
+        ];
+
+        if (!$property->has_membership || !$property->membershipProperty) {
+            return response()->json([
+                'success' => true,
+                'data' => $defaultTiers,
+            ]);
+        }
+
+        try {
+            $context = $this->oauthService->getPropertyContext($property);
+            $tiers = $context['data']['tiers'] ?? [];
+            return response()->json([
+                'success' => true,
+                'data' => !empty($tiers) ? $tiers : $defaultTiers,
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => true,
+                'data' => $defaultTiers,
+            ]);
+        }
+    }
+
+    /**
+     * Update room rate plan (member rate applicability and tier discount matrix).
+     */
+    public function updateRoomRatePlan(Request $request, int $id, int $roomId): JsonResponse
+    {
+        $property = Property::findOrFail($id);
+        $room = Room::where('property_id', $property->id)->findOrFail($roomId);
+
+        $validated = $request->validate([
+            'is_member_rate_applicable' => 'required|boolean',
+            'tier_discount_rates' => 'nullable|array',
+        ]);
+
+        $room->update([
+            'is_member_rate_applicable' => $validated['is_member_rate_applicable'],
+            'tier_discount_rates' => $validated['tier_discount_rates'] ?? [],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Room rate plan updated successfully.',
+            'data' => $room,
+        ]);
     }
 
     /**
@@ -182,12 +269,31 @@ class ExtranetController extends Controller
         ]);
 
         if (!empty($validated['client_id'])) {
+            $merchantId = $validated['merchant_id'] ?? null;
+            $corporateId = null;
+            $tenantDomain = $validated['tenant_domain'] ?? 'jeevawasa.localhost';
+
+            if (empty($merchantId)) {
+                try {
+                    $contextResult = $this->oauthService->testConnection(
+                        $validated['client_id'],
+                        $validated['client_secret'] ?? '',
+                        $tenantDomain
+                    );
+                    $merchantId = $contextResult['merchant_id'] ?? null;
+                    $corporateId = $contextResult['corporate_id'] ?? null;
+                } catch (\Throwable $err) {
+                    // Fallback to empty if resolution fails
+                }
+            }
+
             MembershipProperty::create([
                 'property_id' => $property->id,
                 'client_id' => $validated['client_id'],
                 'client_secret' => $validated['client_secret'] ?? '',
-                'merchant_id' => $validated['merchant_id'] ?? '',
-                'x_tenant_domain' => $validated['tenant_domain'] ?? 'jeevawasa.localhost',
+                'merchant_id' => $merchantId ?? '',
+                'corporate_id' => $corporateId,
+                'x_tenant_domain' => $tenantDomain,
                 'is_active' => true,
             ]);
         }
@@ -195,7 +301,7 @@ class ExtranetController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Property created successfully.',
-            'data' => $property->load('membershipProperty'),
+            'data' => $property->load(['membershipProperty', 'rooms']),
         ], 201);
     }
 }

@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 
 const properties = ref([])
-const activePropertyId = ref(1)
+const activePropertyId = ref(5)
 const activeProperty = ref(null)
 const isLoadingProperty = ref(false)
 const activeTab = ref('stays') // 'stays' | 'experiences' | 'about'
@@ -36,8 +36,11 @@ export function useBooking() {
     try {
       const res = await fetch(`${bffUrl}/api/properties`)
       const json = await res.json()
-      if (json.success) {
+      if (json.success && json.data.length > 0) {
         properties.value = json.data
+        if (!properties.value.some(p => p.id === activePropertyId.value)) {
+          activePropertyId.value = properties.value[0].id
+        }
       }
     } catch (err) {
       console.error('Failed to load properties:', err)
@@ -47,12 +50,15 @@ export function useBooking() {
   const fetchPropertyDetails = async (id = activePropertyId.value) => {
     isLoadingProperty.value = true
     try {
-      const res = await fetch(`${bffUrl}/api/properties/${id}`)
+      const targetId = id || activePropertyId.value || 5
+      const res = await fetch(`${bffUrl}/api/properties/${targetId}`)
       const json = await res.json()
       if (json.success) {
         activeProperty.value = json.data
-        activePropertyId.value = id
+        activePropertyId.value = targetId
         destination.value = json.data.city || 'Ubud, Bali'
+      } else if (properties.value.length > 0 && targetId !== properties.value[0].id) {
+        await fetchPropertyDetails(properties.value[0].id)
       }
     } catch (err) {
       console.error('Failed to load property details:', err)
