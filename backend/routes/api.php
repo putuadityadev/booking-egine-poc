@@ -36,6 +36,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register/otp/verify', [AuthController::class, 'registerOtpVerify']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/transactions', [AuthController::class, 'transactions']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 

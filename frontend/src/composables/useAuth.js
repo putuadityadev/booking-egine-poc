@@ -45,7 +45,8 @@ export function useAuth() {
     if (plan && Number(plan.price) > 0 && Number(plan.point) > 0) {
       return Math.floor((Number(amount) / Number(plan.price)) * Number(plan.point))
     }
-    return 0
+    // Standard baseline fallback: 1 point per IDR 500,000 spend
+    return Math.floor(Number(amount) / 500000)
   }
 
   const setAuthSession = (data) => {
@@ -341,6 +342,28 @@ export function useAuth() {
     }
   }
 
+  const fetchMemberTransactions = async (propertyId, page = 1, limit = 5) => {
+    if (!token.value) {
+      return { transactions: [], meta: { page, limit, total: 0 } }
+    }
+    try {
+      const res = await fetch(`${bffUrl}/api/auth/transactions?property_id=${propertyId}&page=${page}&limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${token.value}`,
+          'Accept': 'application/json',
+        },
+      })
+      const json = await res.json()
+      if (json.status && json.data) {
+        return json.data
+      }
+      return { transactions: [], meta: { page, limit, total: 0 } }
+    } catch (err) {
+      console.warn('Failed to fetch member transactions:', err.message)
+      return { transactions: [], meta: { page, limit, total: 0 } }
+    }
+  }
+
   const openAuthModal = (mode = 'signin', subTab = 'otp') => {
     authModalMode.value = mode
     signInSubTab.value = subTab
@@ -384,5 +407,6 @@ export function useAuth() {
     registerMember,
     logout,
     updatePoints,
+    fetchMemberTransactions,
   }
 }

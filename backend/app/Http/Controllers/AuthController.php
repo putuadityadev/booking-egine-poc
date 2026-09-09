@@ -288,6 +288,36 @@ class AuthController extends Controller
     }
 
     /**
+     * Retrieve authenticated member transactions.
+     */
+    public function transactions(Request $request): JsonResponse
+    {
+        $bearerToken = $request->bearerToken();
+
+        if (!$bearerToken) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated. Bearer token is missing.',
+            ], 401);
+        }
+
+        try {
+            $property = $this->resolveProperty($request);
+            $page = max(1, (int) $request->query('page', 1));
+            $limit = min(50, max(1, (int) $request->query('limit', 5)));
+
+            $response = $this->oauthService->getMemberTransactions($property, $bearerToken, $page, $limit);
+
+            return response()->json($response);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
      * Logout and revoke session.
      */
     public function logout(Request $request): JsonResponse

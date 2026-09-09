@@ -240,9 +240,28 @@ class MembershipOAuthService
         $creds = $this->getCredentials($property);
 
         $response = Http::withHeaders($this->getHeaders($creds['tenant_domain'], $bearerToken))
-            ->get("{$this->baseUrl}/api/v2/oauth/member/self");
+            ->get("{$this->baseUrl}/api/v2/oauth/member/self", [
+                'client_id' => $creds['client_id'],
+            ]);
 
         return $this->handleResponse($response, 'OAUTH.GET_PROFILE_FAILED');
+    }
+
+    /**
+     * Retrieve authenticated member transaction history via Bearer Token.
+     */
+    public function getMemberTransactions(Property $property, string $bearerToken, int $page = 1, int $limit = 5): array
+    {
+        $creds = $this->getCredentials($property);
+
+        $response = Http::withHeaders($this->getHeaders($creds['tenant_domain'], $bearerToken))
+            ->get("{$this->baseUrl}/api/v2/oauth/member/transactions", [
+                'client_id' => $creds['client_id'],
+                'page' => $page,
+                'limit' => $limit,
+            ]);
+
+        return $this->handleResponse($response, 'OAUTH.GET_TRANSACTIONS_FAILED');
     }
 
     /**

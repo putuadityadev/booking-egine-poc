@@ -146,6 +146,95 @@
               <span class="meta-label">Loyalty Club:</span>
               <span class="meta-value">{{ activeProperty?.name || 'Jeevawasa Sanctuary' }}</span>
             </div>
+
+            <!-- Member Recent Transactions Feed -->
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-transactions-section">
+              <div class="dropdown-transactions-header">
+                <span class="transactions-heading">Recent Transactions</span>
+                <span v-if="memberTransactions.length > 0" class="transactions-counter">
+                  Showing {{ memberTransactions.length }}
+                </span>
+              </div>
+
+              <!-- Transactions Scrollable List -->
+              <div
+                class="transactions-scroll-container"
+                @scroll="handleTransactionsScroll"
+              >
+                <div v-if="isLoadingTransactions && memberTransactions.length === 0" class="transactions-loading">
+                  <span class="mini-spinner"></span>
+                  <span>Loading recent transactions...</span>
+                </div>
+
+                <div v-else-if="memberTransactions.length === 0" class="transactions-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-receipt-svg">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  <span>No recent transactions</span>
+                </div>
+
+                <div v-else class="transactions-list">
+                  <div
+                    v-for="(trx, idx) in memberTransactions"
+                    :key="trx.id || idx"
+                    class="my-transaction-item"
+                  >
+                    <!-- Left: Circular Icon -->
+                    <div class="trx-icon-circle" :class="getTrxIconClass(trx)">
+                      <svg v-if="trx.type === 'gift'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="trx-svg">
+                        <polyline points="20 12 20 22 4 22 4 12" />
+                        <rect x="2" y="7" width="20" height="5" />
+                        <line x1="12" y1="22" x2="12" y2="7" />
+                        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                      </svg>
+                      <svg v-else-if="trx.type === 'redeem'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="trx-svg">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="trx-svg">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                      </svg>
+                    </div>
+
+                    <!-- Middle: Detail -->
+                    <div class="trx-details">
+                      <div class="trx-title">{{ getTrxTitle(trx) }}</div>
+                      <div class="trx-property">
+                        {{ trx.branch_name || trx.merchant_name || activeProperty?.name || 'Sanctuary' }}
+                      </div>
+                      <div class="trx-date">{{ formatTrxDate(trx.created_at) }}</div>
+                    </div>
+
+                    <!-- Right: Points Pill -->
+                    <div class="trx-points-badge" :class="getPointsClass(trx)">
+                      <span>{{ formatPoints(trx) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Infinite scroll loader or Load More button -->
+                  <div v-if="hasMoreTransactions" class="transactions-more-wrap">
+                    <button
+                      type="button"
+                      class="btn-load-more-trx"
+                      :disabled="isLoadingMore"
+                      @click="loadMoreTransactions"
+                    >
+                      <span v-if="isLoadingMore" class="loading-inline">
+                        <span class="mini-spinner"></span>
+                        Loading...
+                      </span>
+                      <span v-else>+ Load 5 More</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="dropdown-divider"></div>
             <button class="dropdown-logout-btn" @click="handleLogout">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="logout-icon">
@@ -173,7 +262,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useBooking } from '../composables/useBooking'
@@ -188,6 +277,7 @@ const {
   memberTier,
   memberPoints,
   openAuthModal,
+  fetchMemberTransactions,
   logout
 } = useAuth()
 
@@ -265,6 +355,113 @@ const handlePropertySwitch = async (id) => {
 const handleLogout = async () => {
   isUserMenuOpen.value = false
   await logout(activePropertyId.value)
+}
+
+// Member Recent Transactions state & pagination (+5 items per scroll)
+const memberTransactions = ref([])
+const isLoadingTransactions = ref(false)
+const isLoadingMore = ref(false)
+const transactionsPage = ref(1)
+const hasMoreTransactions = ref(false)
+
+const loadMemberTransactions = async (page = 1) => {
+  if (!isLoggedIn.value) return
+  if (page === 1) {
+    isLoadingTransactions.value = true
+  } else {
+    isLoadingMore.value = true
+  }
+
+  try {
+    const propId = activePropertyId.value || activeProperty.value?.id || 5
+    const result = await fetchMemberTransactions(propId, page, 5)
+    const list = result.transactions || []
+    if (page === 1) {
+      memberTransactions.value = list
+    } else {
+      const existingKeys = new Set(memberTransactions.value.map(t => `${t.id || ''}-${t.transaction_code || ''}`))
+      list.forEach(t => {
+        const k = `${t.id || ''}-${t.transaction_code || ''}`
+        if (!existingKeys.has(k)) {
+          memberTransactions.value.push(t)
+        }
+      })
+    }
+    transactionsPage.value = page
+    hasMoreTransactions.value = list.length === 5
+  } catch (err) {
+    console.warn('Unable to load member transactions:', err)
+  } finally {
+    isLoadingTransactions.value = false
+    isLoadingMore.value = false
+  }
+}
+
+const loadMoreTransactions = async () => {
+  if (isLoadingMore.value || !hasMoreTransactions.value) return
+  await loadMemberTransactions(transactionsPage.value + 1)
+}
+
+const handleTransactionsScroll = (e) => {
+  const target = e.target
+  if (target.scrollTop + target.clientHeight >= target.scrollHeight - 20) {
+    if (!isLoadingMore.value && hasMoreTransactions.value) {
+      loadMoreTransactions()
+    }
+  }
+}
+
+watch(isUserMenuOpen, (isOpen) => {
+  if (isOpen && isLoggedIn.value) {
+    loadMemberTransactions(1)
+  }
+})
+
+const getTrxTitle = (trx) => {
+  if (trx.detail_name) return trx.detail_name
+  if (trx.type === 'gift') return 'Gift Voucher'
+  if (trx.type === 'redeem') return 'Voucher Redemption'
+  return trx.transaction_code || 'Sanctuary Stay'
+}
+
+const formatTrxDate = (dateStr) => {
+  if (!dateStr) return 'Recent Stay'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const month = months[d.getMonth()]
+  const day = String(d.getDate()).padStart(2, '0')
+  const year = d.getFullYear()
+  let hours = d.getHours()
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  const period = hours >= 12 ? 'PM' : 'AM'
+  hours = hours % 12 || 12
+  const hourDisp = String(hours).padStart(2, '0')
+  return `${month} ${day}, ${year} • ${hourDisp}.${minutes} ${period}`
+}
+
+const formatPoints = (trx) => {
+  const pt = trx.point ?? trx.point_deducted ?? 0
+  const formattedVal = Math.abs(pt).toLocaleString('id-ID')
+  if (trx.type === 'gift') return '🎁 Gift'
+  if (trx.is_pending === 1) return `${formattedVal} Pts`
+  if (pt > 0) return `+${formattedVal} Pts`
+  if (pt < 0) return `-${formattedVal} Pts`
+  return `${formattedVal} Pts`
+}
+
+const getPointsClass = (trx) => {
+  if (trx.is_pending === 1) return 'points-pending'
+  const pt = trx.point ?? trx.point_deducted ?? 0
+  if (pt > 0) return 'points-plus'
+  if (pt < 0) return 'points-minus'
+  return ''
+}
+
+const getTrxIconClass = (trx) => {
+  if (trx.type === 'gift') return 'icon-gift'
+  if (trx.type === 'redeem') return 'icon-redeem'
+  return 'icon-hotel'
 }
 </script>
 
@@ -648,9 +845,9 @@ const handleLogout = async () => {
   position: absolute;
   top: 48px;
   right: 0;
-  width: 280px;
+  width: 350px;
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--colors-hairline, #e0e0e0);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   padding: 16px;
@@ -738,6 +935,225 @@ const handleLogout = async () => {
 .meta-value {
   font-weight: 600;
   color: var(--colors-ink, #1a1a1a);
+}
+
+/* Member Recent Transactions Section */
+.dropdown-transactions-section {
+  margin: 4px 0;
+}
+
+.dropdown-transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.transactions-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.transactions-counter {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.transactions-scroll-container {
+  max-height: 230px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.transactions-scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+.transactions-scroll-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.my-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+}
+
+.my-transaction-item:hover {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.trx-icon-circle {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+}
+
+.trx-icon-circle.icon-gift {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.trx-icon-circle.icon-redeem {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.trx-icon-circle.icon-hotel {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+
+.trx-svg {
+  width: 14px;
+  height: 14px;
+}
+
+.trx-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.trx-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.trx-property {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.trx-date {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.trx-points-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* Points Plus (green) matching MyTransaction.vue */
+.trx-points-badge.points-plus {
+  background-color: #e6f7e6;
+  color: #00aa00;
+}
+
+/* Points Minus (red) matching MyTransaction.vue */
+.trx-points-badge.points-minus {
+  background-color: #ffe6e6;
+  color: #d92d20;
+}
+
+.trx-points-badge.points-pending {
+  background-color: #f5f5f5;
+  color: #6b7280;
+}
+
+.transactions-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.btn-load-more-trx {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-load-more-trx:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.transactions-loading,
+.transactions-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 10px;
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.empty-receipt-svg {
+  width: 24px;
+  height: 24px;
+  color: #cbd5e1;
+}
+
+.mini-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #0f172a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+.loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .dropdown-logout-btn {

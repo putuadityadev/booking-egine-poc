@@ -70,64 +70,82 @@
           </div>
         </section>
 
-        <!-- About Property & Host Concierge Section -->
-        <section class="about-property-section">
-          <div class="about-grid">
-            <div class="about-main">
-              <h3 class="about-title">About this Sanctuary</h3>
-              <p class="about-text">{{ activeProperty.description }}</p>
-
-              <h4 class="amenities-title">What this sanctuary offers</h4>
-              <div class="amenities-grid">
-                <div
-                  v-for="(amenity, idx) in activeProperty.amenities"
-                  :key="idx"
-                  class="amenity-item"
-                >
-                  <svg class="amenity-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>{{ amenity }}</span>
-                </div>
-              </div>
+        <!-- Verified Guest & Member Reviews Section -->
+        <section class="reviews-section">
+          <div class="reviews-header-row">
+            <div>
+              <div class="reviews-eyebrow">Verified Sanctuary Experiences</div>
+              <h3 class="reviews-title">Guest &amp; Member Reviews</h3>
             </div>
+            <div class="reviews-score-badge">
+              <div class="score-stars">
+                <svg
+                  v-for="s in 5"
+                  :key="s"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  class="star-svg"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </div>
+              <span class="score-num">4.98</span>
+              <span class="score-meta">&bull; 148 Verified Stays</span>
+            </div>
+          </div>
 
-            <!-- Concierge & Host Profile Card -->
-            <div class="host-card">
-              <div class="host-header">
-                <div class="host-avatar">
-                  <span>{{ activeProperty.code ? activeProperty.code.substring(0, 2) : 'JH' }}</span>
-                </div>
-                <div>
-                  <h4 class="host-name">Hosted by {{ activeProperty.name }}</h4>
-                  <div class="superhost-badge">
-                    <svg viewBox="0 0 24 24" fill="currentColor" class="superhost-star-svg">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>
-                    <span>Superhost • Luxury Hospitality Partner</span>
+          <div class="reviews-grid">
+            <article
+              v-for="rev in memberReviews"
+              :key="rev.id"
+              class="review-card"
+            >
+              <div class="review-card-top">
+                <div class="reviewer-info">
+                  <div class="reviewer-avatar" :class="rev.tierClass">
+                    {{ rev.initials }}
+                  </div>
+                  <div class="reviewer-details">
+                    <div class="reviewer-name-row">
+                      <h4 class="reviewer-name">{{ rev.guestName }}</h4>
+                      <span class="verified-pill">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="verified-check-svg">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Verified
+                      </span>
+                    </div>
+                    <div class="reviewer-meta-row">
+                      <span class="review-tier-badge" :class="rev.tierClass">{{ rev.tier }}</span>
+                      <span class="review-date-dot">&bull;</span>
+                      <span class="review-date">{{ rev.stayDate }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <p class="host-bio">
-                Dedicated 24/7 guest concierge and private butler service ensuring your Jeevawasa Club privileges and member rewards are seamlessly honored throughout your stay.
-              </p>
-
-              <div class="host-stats">
-                <div class="stat-cell">
-                  <span class="stat-num">100%</span>
-                  <span class="stat-lbl">Response rate</span>
-                </div>
-                <div class="stat-cell">
-                  <span class="stat-num">&lt; 1 hr</span>
-                  <span class="stat-lbl">Response time</span>
-                </div>
-                <div class="stat-cell">
-                  <span class="stat-num">Verified</span>
-                  <span class="stat-lbl">Sanctuary Partner</span>
-                </div>
+              <div class="review-room-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="bed-svg">
+                  <path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9" />
+                </svg>
+                <span>{{ rev.roomStayed }}</span>
               </div>
-            </div>
+
+              <div class="review-stars-row">
+                <svg
+                  v-for="s in rev.rating"
+                  :key="s"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  class="card-star-svg"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </div>
+
+              <h5 class="review-headline">"{{ rev.title }}"</h5>
+              <p class="review-comment">{{ rev.comment }}</p>
+            </article>
           </div>
         </section>
       </template>
@@ -150,8 +168,53 @@
 </template>
 
 <script setup>
-import { watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+const memberReviews = ref([
+  {
+    id: 1,
+    guestName: 'Elena Rostova',
+    initials: 'ER',
+    tier: 'Diamond Member',
+    tierClass: 'tier-diamond',
+    rating: 5,
+    stayDate: 'August 2026',
+    roomStayed: 'Royal Riverfront Pool Villa',
+    title: 'Absolute bliss and seamless loyalty perks',
+    comment:
+      'The riverfront pool villa was sheer perfection. Our Diamond member benefits were honored immediately with early check-in, complimentary afternoon tea, and instantaneous point accumulation. Best sanctuary experience in Bali.',
+    verified: true,
+  },
+  {
+    id: 2,
+    guestName: 'Marcus Vance',
+    initials: 'MV',
+    tier: 'Platinum Member',
+    tierClass: 'tier-platinum',
+    rating: 5,
+    stayDate: 'July 2026',
+    roomStayed: 'Grand Valley Suite',
+    title: 'Flawless hospitality & magnificent valley views',
+    comment:
+      'From the private butler greeting to the morning floating breakfast, every second felt thoughtfully curated. Member discount saved us over IDR 1,500,000 on direct direct booking!',
+    verified: true,
+  },
+  {
+    id: 3,
+    guestName: 'Dr. Dian Sastrowardoyo',
+    initials: 'DS',
+    tier: 'Gold Member',
+    tierClass: 'tier-gold',
+    rating: 5,
+    stayDate: 'July 2026',
+    roomStayed: 'Ayung Sanctuary Pool Villa',
+    title: 'Unrivaled tranquil luxury with genuine warmth',
+    comment:
+      'A true haven of tranquility. The botanical spa rituals and private plunge pool overlooking the jungle ravine are world-class. Points were automatically added to my account before checkout.',
+    verified: true,
+  },
+])
 import Navbar from '../components/Navbar.vue'
 import SearchBar from '../components/SearchBar.vue'
 import PropertyHeader from '../components/PropertyHeader.vue'
@@ -302,147 +365,247 @@ const handleOpenReserveModal = (room) => {
   gap: 24px;
 }
 
-/* About & Host Section */
-.about-property-section {
-  border-top: 1px solid var(--colors-hairline-soft);
-  padding-top: 40px;
-  margin-bottom: 48px;
+/* Reviews Section */
+.reviews-section {
+  border-top: 1px solid var(--colors-hairline-soft, #e2e8f0);
+  padding-top: 48px;
+  margin-bottom: 56px;
 }
 
-.about-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 40px;
-}
-
-.about-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--colors-ink);
-  margin-bottom: 12px;
-}
-
-.about-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--colors-body);
+.reviews-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.amenities-title {
-  font-size: 16px;
+.reviews-eyebrow {
+  font-size: 11px;
   font-weight: 700;
-  color: var(--colors-ink);
-  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #c9a840;
+  margin-bottom: 6px;
 }
 
-.amenities-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 24px;
+.reviews-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--colors-ink, #0f172a);
+  margin: 0;
 }
 
-.amenity-item {
-  display: flex;
+.reviews-score-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: var(--colors-ink);
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--colors-hairline, #e2e8f0);
+  padding: 8px 16px;
+  border-radius: 999px;
 }
 
-.amenity-check {
-  width: 16px;
-  height: 16px;
-  color: var(--colors-primary);
-}
-
-/* Host Card */
-.host-card {
-  background: var(--colors-surface-soft);
-  border: 1px solid var(--colors-hairline-soft);
-  border-radius: var(--radius-md);
-  padding: 24px;
-  height: fit-content;
-}
-
-.host-header {
+.score-stars {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 2px;
 }
 
-.host-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--colors-primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.host-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--colors-ink);
-}
-
-.superhost-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--colors-muted);
-}
-
-.superhost-star-svg {
-  width: 12px;
-  height: 12px;
+.star-svg {
+  width: 14px;
+  height: 14px;
   color: #f59e0b;
 }
 
-.host-bio {
-  font-size: 13px;
-  color: var(--colors-body);
-  line-height: 1.5;
-  margin-bottom: 20px;
+.score-num {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
 }
 
-.host-stats {
-  display: flex;
-  border-top: 1px solid var(--colors-hairline);
-  padding-top: 14px;
-  gap: 20px;
+.score-meta {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.stat-cell {
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.review-card {
+  background: #ffffff;
+  border: 1px solid var(--colors-hairline, #e2e8f0);
+  border-radius: 14px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.stat-num {
-  font-size: 15px;
+.review-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+}
+
+.review-card-top {
+  margin-bottom: 14px;
+}
+
+.reviewer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reviewer-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.reviewer-avatar.tier-diamond {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1.5px solid #c9a840;
+}
+
+.reviewer-avatar.tier-platinum {
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  border: 1.5px solid #94a3b8;
+}
+
+.reviewer-avatar.tier-gold {
+  background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+  border: 1.5px solid #f59e0b;
+}
+
+.reviewer-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.reviewer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.reviewer-name {
+  font-size: 14px;
   font-weight: 700;
-  color: var(--colors-ink);
+  color: #0f172a;
+  margin: 0;
 }
 
-.stat-lbl {
+.verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11px;
-  color: var(--colors-muted);
+  font-weight: 600;
+  color: #16a34a;
+  background: #f0fdf4;
+  padding: 1px 6px;
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
 }
 
-@media (max-width: 1024px) {
-  .rooms-grid,
-  .experiences-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .about-grid {
-    grid-template-columns: 1fr;
-  }
+.verified-check-svg {
+  width: 10px;
+  height: 10px;
+}
+
+.reviewer-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.review-tier-badge {
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.review-tier-badge.tier-diamond {
+  color: #0f172a;
+}
+
+.review-tier-badge.tier-platinum {
+  color: #475569;
+}
+
+.review-tier-badge.tier-gold {
+  color: #b45309;
+}
+
+.review-date-dot {
+  color: #94a3b8;
+}
+
+.review-date {
+  color: #64748b;
+}
+
+.review-room-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 12px;
+  width: fit-content;
+}
+
+.bed-svg {
+  width: 13px;
+  height: 13px;
+  color: #64748b;
+}
+
+.review-stars-row {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.card-star-svg {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+}
+
+.review-headline {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.review-comment {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+  flex: 1;
 }
 
 @media (max-width: 744px) {

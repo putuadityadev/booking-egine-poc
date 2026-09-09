@@ -28,6 +28,8 @@ class Booking extends Model
         'member_tier',
         'points_earned',
         'status',
+        'booking_items',
+        'special_requests',
         'transaction_response',
     ];
 
@@ -43,6 +45,7 @@ class Booking extends Model
         'total_amount' => 'float',
         'is_member' => 'boolean',
         'points_earned' => 'integer',
+        'booking_items' => 'array',
         'transaction_response' => 'array',
     ];
 

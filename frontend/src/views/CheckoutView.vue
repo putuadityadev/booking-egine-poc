@@ -77,11 +77,29 @@
               <span class="label">Property</span>
               <span class="value">{{ confirmedBooking.property_name }}</span>
             </div>
-            <div class="summary-line">
+
+            <!-- Multi-Room Breakdown or Single Room -->
+            <div v-if="confirmedBooking.items && confirmedBooking.items.length > 1" class="summary-items-block">
+              <div class="summary-items-header">
+                <span class="label">Reserved Suites &amp; Villas ({{ confirmedBooking.items.length }} Rooms)</span>
+              </div>
+              <div
+                v-for="(itm, idx) in confirmedBooking.items"
+                :key="idx"
+                class="summary-sub-item"
+              >
+                <div class="sub-item-name">{{ itm.room_name }}</div>
+                <div class="sub-item-meta">
+                  {{ itm.check_in }} &mdash; {{ itm.check_out }} &bull; {{ itm.nights }} Nights &bull; {{ itm.guests }} Guests
+                </div>
+              </div>
+            </div>
+            <div v-else class="summary-line">
               <span class="label">Suite &amp; Villa</span>
               <span class="value">{{ confirmedBooking.room_name }}</span>
             </div>
-            <div class="summary-line">
+
+            <div v-if="!confirmedBooking.items || confirmedBooking.items.length <= 1" class="summary-line">
               <span class="label">Stay Duration</span>
               <span class="value">{{ confirmedBooking.check_in }} &mdash; {{ confirmedBooking.check_out }} ({{ confirmedBooking.nights }} Nights)</span>
             </div>
@@ -602,6 +620,14 @@ const handleConfirmAndPay = async () => {
 
     const payload = {
       property_id: propId,
+      items: cartItems.value.map((item) => ({
+        room_id: item.roomId,
+        check_in: item.checkIn,
+        check_out: item.checkOut,
+        guests: item.guests || 2,
+        nights: item.nights || 1,
+        quantity: item.quantity || 1,
+      })),
       room_id: primaryItem.roomId,
       check_in: primaryItem.checkIn,
       check_out: primaryItem.checkOut,
@@ -1573,6 +1599,41 @@ const handleConfirmAndPay = async () => {
 .summary-line.line-total .amount {
   color: #0f172a;
   font-size: 17px;
+}
+
+.summary-items-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-items-header .label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-sub-item {
+  padding-left: 6px;
+  border-left: 2px solid #0f172a;
+}
+
+.sub-item-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.sub-item-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
 }
 
 @media (max-width: 900px) {

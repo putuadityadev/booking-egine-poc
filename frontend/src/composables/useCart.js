@@ -1,4 +1,5 @@
 import { ref, computed, watch } from 'vue'
+import { useAuth } from './useAuth'
 
 const CART_STORAGE_KEY = 'stayhub_cart_items_v2'
 
@@ -116,7 +117,16 @@ export function useCart() {
   const updateNights = (itemId, nights) => {
     const item = cartItems.value.find((i) => i.id === itemId)
     if (!item) return
-    item.nights = Math.max(1, nights)
+    const newNights = Math.max(1, nights)
+    item.nights = newNights
+
+    // Recalculate checkOut so backend date diff stays in sync with nights stepper
+    const checkInDate = new Date(item.checkIn + 'T00:00:00')
+    checkInDate.setDate(checkInDate.getDate() + newNights)
+    const yyyy = checkInDate.getFullYear()
+    const mm = String(checkInDate.getMonth() + 1).padStart(2, '0')
+    const dd = String(checkInDate.getDate()).padStart(2, '0')
+    item.checkOut = `${yyyy}-${mm}-${dd}`
   }
 
   const updateGuests = (itemId, guests) => {
@@ -212,7 +222,11 @@ export function useCart() {
   })
 
   const cartEstimatedPoints = computed(() => {
-    // 1 point per IDR 500,000 spend
+    // Dynamic real-time calculation based on the active point plan
+    const { calculatePoints, pointPlan } = useAuth()
+    if (pointPlan.value && Number(pointPlan.value.price) > 0) {
+      return calculatePoints(cartNetSubtotal.value)
+    }
     return Math.floor(cartNetSubtotal.value / 500000)
   })
 
