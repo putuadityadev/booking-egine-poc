@@ -1,7 +1,11 @@
+<template>
+  <router-view />
+</template>
+
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+// Main router outlet for StayHub Booking Engine & Extranet
 </script>
 
-<template>
-  <HelloWorld />
-</template>
+<style>
+/* Global resets and layout handled in style.css */
+</style>
