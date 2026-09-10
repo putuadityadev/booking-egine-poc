@@ -444,7 +444,7 @@ const formatPoints = (trx) => {
   const pt = trx.point ?? trx.point_deducted ?? 0
   const formattedVal = Math.abs(pt).toLocaleString('id-ID')
   if (trx.type === 'gift') return '🎁 Gift'
-  if (trx.is_pending === 1) return `${formattedVal} Pts`
+  if (trx.is_pending === 1) return `⏳ ${formattedVal} Pts (Pending)`
   if (pt > 0) return `+${formattedVal} Pts`
   if (pt < 0) return `-${formattedVal} Pts`
   return `${formattedVal} Pts`

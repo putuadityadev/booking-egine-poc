@@ -138,6 +138,22 @@
               </svg>
               <span>Hotel Details</span>
             </button>
+
+            <button
+              type="button"
+              class="editor-tab-btn"
+              :class="{ active: activeSection === 'bookings' }"
+              @click="activeSection = 'bookings'; fetchBookings()"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span>Reservations &amp; Points Control</span>
+            </button>
           </div>
 
           <!-- TAB 1: MEMBERSHIP INTEGRATION (NO MANUAL MERCHANT UUID) -->
@@ -236,6 +252,91 @@
                     <strong>Loyalty Tiers Available:</strong>
                     {{ (testResult.context?.tiers || []).map(t => t.name).join(', ') || 'Bronze, Silver, Gold, Diamond' }}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Point Release Policy Selection -->
+            <div class="point-release-section">
+              <div class="section-divider-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>Point Release Mechanism</span>
+              </div>
+              <p class="section-subtitle">
+                Select when loyalty points are credited to member accounts.
+              </p>
+
+              <div class="point-release-cards-grid">
+                <!-- Option 1: Automated / Instant -->
+                <div
+                  class="release-mode-card"
+                  :class="{ active: form.point_release_mode === 'automated' }"
+                  @click="form.point_release_mode = 'automated'"
+                >
+                  <div class="mode-card-top">
+                    <div class="mode-radio-row">
+                      <input
+                        type="radio"
+                        id="mode-automated"
+                        value="automated"
+                        v-model="form.point_release_mode"
+                      />
+                      <label for="mode-automated" class="mode-title">Automated</label>
+                    </div>
+                    <span class="mode-badge badge-instant">⚡ Real-Time</span>
+                  </div>
+                  <p class="mode-desc">
+                    Points credited immediately upon booking.
+                  </p>
+                </div>
+
+                <!-- Option 2: Check-In Release -->
+                <div
+                  class="release-mode-card"
+                  :class="{ active: form.point_release_mode === 'checkin' }"
+                  @click="form.point_release_mode = 'checkin'"
+                >
+                  <div class="mode-card-top">
+                    <div class="mode-radio-row">
+                      <input
+                        type="radio"
+                        id="mode-checkin"
+                        value="checkin"
+                        v-model="form.point_release_mode"
+                      />
+                      <label for="mode-checkin" class="mode-title">On Check-In</label>
+                    </div>
+                    <span class="mode-badge badge-scheduled">🏨 At Arrival</span>
+                  </div>
+                  <p class="mode-desc">
+                    Points released when guest checks in.
+                  </p>
+                </div>
+
+                <!-- Option 3: Check-Out Release -->
+                <div
+                  class="release-mode-card"
+                  :class="{ active: form.point_release_mode === 'checkout' }"
+                  @click="form.point_release_mode = 'checkout'"
+                >
+                  <div class="mode-card-top">
+                    <div class="mode-radio-row">
+                      <input
+                        type="radio"
+                        id="mode-checkout"
+                        value="checkout"
+                        v-model="form.point_release_mode"
+                      />
+                      <label for="mode-checkout" class="mode-title">On Check-Out</label>
+                    </div>
+                    <span class="mode-badge badge-completion">🛫 At Departure</span>
+                  </div>
+                  <p class="mode-desc">
+                    Points released after stay is completed.
+                  </p>
                 </div>
               </div>
             </div>
@@ -478,6 +579,183 @@
               </button>
             </div>
           </div>
+
+          <!-- TAB 4: RESERVATIONS & POINT STATUS MANAGEMENT -->
+          <div v-if="activeSection === 'bookings'" class="config-card">
+            <div class="card-title-row with-action">
+              <div class="card-title-left">
+                <div class="card-icon-tag">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="card-title">Reservations &amp; Points Control</h4>
+                  <p class="card-desc">
+                    Manage guest stays and loyalty point releases.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="btn-sync-tiers"
+                :disabled="isLoadingBookings"
+                @click="fetchBookings"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-svg" :class="{ 'spin-anim': isLoadingBookings }">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                <span>{{ isLoadingBookings ? 'Refreshing...' : 'Refresh' }}</span>
+              </button>
+            </div>
+
+            <!-- Point Release Policy Summary Banner -->
+            <div class="policy-summary-banner">
+              <div class="policy-banner-item">
+                <span class="banner-label">Active Policy:</span>
+                <span class="banner-value">
+                  <span v-if="form.point_release_mode === 'automated'" class="mode-chip chip-automated">⚡ Automated</span>
+                  <span v-else-if="form.point_release_mode === 'checkin'" class="mode-chip chip-checkin">🏨 On Check-In</span>
+                  <span v-else class="mode-chip chip-checkout">🛫 On Check-Out</span>
+                </span>
+              </div>
+              <div class="policy-banner-item">
+                <span class="banner-label">Total Bookings:</span>
+                <span class="banner-number">{{ bookings.length }}</span>
+              </div>
+            </div>
+
+            <!-- Bookings Table -->
+            <div v-if="isLoadingBookings" class="bookings-loading-state">
+              <span class="spinner-dot"></span>
+              <span>Loading reservations...</span>
+            </div>
+
+            <div v-else-if="bookings.length === 0" class="bookings-empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-svg">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+              <div class="empty-title">No Reservations Recorded</div>
+              <p class="empty-desc">Reservations created on the public engine will appear here.</p>
+            </div>
+
+            <div v-else class="bookings-table-wrapper">
+              <table class="bookings-table">
+                <thead>
+                  <tr>
+                    <th class="col-code">Booking Code</th>
+                    <th class="col-guest">Guest</th>
+                    <th class="col-room">Room &amp; Dates</th>
+                    <th class="col-mode">Release Mode</th>
+                    <th class="col-points">Points</th>
+                    <th class="col-status">Stay Status</th>
+                    <th class="col-actions text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="b in bookings" :key="b.id">
+                    <td class="col-code">
+                      <div class="code-cell">
+                        <span class="booking-ref-code">{{ b.reservation_code }}</span>
+                        <span class="booking-created-at">{{ formatDateShort(b.created_at) }}</span>
+                      </div>
+                    </td>
+                    <td class="col-guest">
+                      <div class="guest-cell">
+                        <div class="guest-name-row">
+                          <span class="guest-name">{{ b.guest_name }}</span>
+                          <span v-if="b.is_member" class="member-tag">Member</span>
+                          <span v-else class="guest-tag">Guest</span>
+                        </div>
+                        <span class="guest-email" :title="b.guest_email">{{ b.guest_email }}</span>
+                      </div>
+                    </td>
+                    <td class="col-room">
+                      <div class="room-date-cell">
+                        <span class="room-title" :title="b.room?.name || 'Standard Suite'">{{ b.room?.name || 'Standard Suite' }}</span>
+                        <span class="dates-range">{{ formatDateOnly(b.check_in) }} – {{ formatDateOnly(b.check_out) }} • {{ b.nights }}N</span>
+                      </div>
+                    </td>
+                    <td class="col-mode">
+                      <span v-if="b.point_release_mode === 'automated'" class="mode-pill pill-auto">⚡ Instant</span>
+                      <span v-else-if="b.point_release_mode === 'checkin'" class="mode-pill pill-checkin">🏨 Check-in</span>
+                      <span v-else class="mode-pill pill-checkout">🛫 Check-out</span>
+                    </td>
+                    <td class="col-points">
+                      <div class="points-cell">
+                        <div class="points-row">
+                          <span class="points-val">{{ b.points_earned ? `+${b.points_earned} Pts` : '0 Pts' }}</span>
+                          <span
+                            v-if="b.is_points_materialized"
+                            class="materialize-badge badge-done"
+                          >
+                            ✓ Released
+                          </span>
+                          <span
+                            v-else-if="b.is_member"
+                            class="materialize-badge badge-pending"
+                          >
+                            ⏳ Pending
+                          </span>
+                          <span v-else class="materialize-badge badge-none">—</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="col-status">
+                      <span class="status-chip" :class="`status-${(b.status || 'CONFIRMED').toLowerCase()}`">
+                        {{ b.status || 'CONFIRMED' }}
+                      </span>
+                    </td>
+                    <td class="col-actions text-right">
+                      <div class="actions-cell">
+                        <!-- Check-in button -->
+                        <button
+                          v-if="b.status === 'CONFIRMED'"
+                          type="button"
+                          class="btn-action-sm btn-checkin"
+                          :disabled="isActionLoading[b.id]"
+                          @click="handleUpdateStatus(b.id, 'CHECKED_IN')"
+                        >
+                          Check In
+                        </button>
+
+                        <!-- Check-out button -->
+                        <button
+                          v-if="b.status === 'CHECKED_IN'"
+                          type="button"
+                          class="btn-action-sm btn-checkout"
+                          :disabled="isActionLoading[b.id]"
+                          @click="handleUpdateStatus(b.id, 'CHECKED_OUT')"
+                        >
+                          Check Out
+                        </button>
+
+                        <!-- Manual Release Points button -->
+                        <button
+                          v-if="b.is_member && !b.is_points_materialized"
+                          type="button"
+                          class="btn-action-sm btn-release-point"
+                          :disabled="isActionLoading[b.id]"
+                          @click="handleMaterializePoints(b.id)"
+                        >
+                          <span v-if="isActionLoading[b.id]">Releasing...</span>
+                          <span v-else>Release Pts</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -514,6 +792,11 @@ const editableRooms = ref([])
 const isSavingRoomPlan = ref({})
 const roomPlanSuccess = ref({})
 
+// Bookings & Point release state
+const bookings = ref([])
+const isLoadingBookings = ref(false)
+const isActionLoading = ref({})
+
 const form = ref({
   name: '',
   tagline: '',
@@ -521,6 +804,7 @@ const form = ref({
   country: '',
   image_url: '',
   description: '',
+  point_release_mode: 'automated',
   membership: {
     client_id: '',
     client_secret: '',
@@ -559,6 +843,7 @@ const selectProperty = async (prop) => {
     country: prop.country,
     image_url: prop.image_url || '',
     description: prop.description || '',
+    point_release_mode: prop.point_release_mode || 'automated',
     membership: {
       client_id: prop.membership_property?.client_id || '',
       client_secret: prop.membership_property?.client_secret || '',
@@ -580,6 +865,10 @@ const selectProperty = async (prop) => {
   }))
 
   await syncTiers()
+
+  if (activeSection.value === 'bookings') {
+    await fetchBookings()
+  }
 }
 
 // Sync real tiers from central Membership Platform
@@ -737,6 +1026,107 @@ const handleSaveProperty = async () => {
     errorMessage.value = err.message
   } finally {
     isSaving.value = false
+  }
+}
+
+// Fetch bookings for the selected property
+const fetchBookings = async () => {
+  if (!selectedPropertyId.value) return
+  isLoadingBookings.value = true
+  errorMessage.value = ''
+  try {
+    const res = await fetch(`${bffUrl}/api/extranet/properties/${selectedPropertyId.value}/bookings`)
+    const json = await res.json()
+    if (json.success) {
+      bookings.value = json.data || []
+    }
+  } catch (err) {
+    errorMessage.value = 'Failed to load bookings: ' + err.message
+  } finally {
+    isLoadingBookings.value = false
+  }
+}
+
+// Materialize pending points manually for a booking
+const handleMaterializePoints = async (bookingId) => {
+  isActionLoading.value[bookingId] = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    const res = await fetch(`${bffUrl}/api/extranet/properties/${selectedPropertyId.value}/bookings/${bookingId}/materialize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    })
+    const json = await res.json()
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Failed to materialize points.')
+    }
+    successMessage.value = json.message || 'Points materialized successfully to member balance!'
+    await fetchBookings()
+  } catch (err) {
+    errorMessage.value = err.message
+  } finally {
+    isActionLoading.value[bookingId] = false
+  }
+}
+
+// Update booking status (e.g. CHECKED_IN or CHECKED_OUT) with auto-point release trigger
+const handleUpdateStatus = async (bookingId, status) => {
+  isActionLoading.value[bookingId] = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    const res = await fetch(`${bffUrl}/api/extranet/properties/${selectedPropertyId.value}/bookings/${bookingId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    })
+    const json = await res.json()
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || `Failed to update status to ${status}.`)
+    }
+    successMessage.value = json.message || `Booking status updated to ${status}.`
+    await fetchBookings()
+  } catch (err) {
+    errorMessage.value = err.message
+  } finally {
+    isActionLoading.value[bookingId] = false
+  }
+}
+
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return '-'
+  try {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+const formatDateOnly = (dateStr) => {
+  if (!dateStr) return '-'
+  try {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return dateStr
   }
 }
 
@@ -1670,5 +2060,562 @@ input:checked + .slider:before {
 
 .btn-save-room-plan:hover:not(:disabled) {
   background: #334155;
+}
+
+/* Point Release Section */
+.point-release-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.section-divider-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.section-divider-title svg {
+  width: 18px;
+  height: 18px;
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 3px;
+  margin-bottom: 12px;
+}
+
+.point-release-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .point-release-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.release-mode-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.release-mode-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.release-mode-card.active {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08);
+}
+
+.mode-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mode-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mode-radio-row input[type="radio"] {
+  cursor: pointer;
+  accent-color: #0284c7;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.mode-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mode-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-instant {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-scheduled {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge-completion {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.mode-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+  padding-left: 23px;
+}
+
+/* Policy Summary Banner in Reservations Tab */
+.policy-summary-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+}
+
+.policy-banner-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.banner-number {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.mode-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.chip-automated {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.chip-checkin {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.chip-checkout {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+/* Bookings Loading & Empty State */
+.bookings-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 36px 16px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.spinner-dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.bookings-empty-state {
+  text-align: center;
+  padding: 36px 20px;
+  color: #64748b;
+}
+
+.empty-svg {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 10px;
+  color: #94a3b8;
+}
+
+.empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.empty-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Bookings Table */
+.bookings-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.bookings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.bookings-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.bookings-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.bookings-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Column specific widths & alignment */
+.col-code {
+  white-space: nowrap;
+  min-width: 135px;
+}
+
+.col-guest {
+  min-width: 170px;
+}
+
+.col-room {
+  min-width: 180px;
+}
+
+.col-mode {
+  white-space: nowrap;
+  min-width: 105px;
+}
+
+.col-points {
+  white-space: nowrap;
+  min-width: 130px;
+}
+
+.col-status {
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.col-actions {
+  white-space: nowrap;
+  min-width: 140px;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.code-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.booking-ref-code {
+  font-family: monospace;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 12px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.booking-created-at {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.guest-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guest-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.guest-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.member-tag {
+  background: #fdf2f8;
+  color: #be185d;
+  border: 1px solid #fbcfe8;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.guest-tag {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.guest-email {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.room-date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.room-title {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.dates-range {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.mode-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.pill-auto {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pill-checkin {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.pill-checkout {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.points-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.points-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.points-val {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.materialize-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-done {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-pending {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.badge-none {
+  color: #cbd5e1;
+}
+
+.status-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  display: inline-block;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.status-confirmed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-checked_in {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-checked_out {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.btn-action-sm {
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-action-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-checkin {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+.btn-checkin:hover:not(:disabled) {
+  background: #c7d2fe;
+}
+
+.btn-checkout {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.btn-checkout:hover:not(:disabled) {
+  background: #a7f3d0;
+}
+
+.btn-release-point {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.btn-release-point:hover:not(:disabled) {
+  background: #fde68a;
 }
 </style>

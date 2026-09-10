@@ -302,6 +302,32 @@ class MembershipOAuthService
     }
 
     /**
+     * Materialize pending transaction points for a given reservation / transaction ID.
+     */
+    public function materializeTransaction(Property $property, string $transactionId, ?string $memberId = null): array
+    {
+        $creds = $this->getCredentials($property);
+
+        $payload = [
+            'client_id'             => $creds['client_id'],
+            'client_secret'         => $creds['client_secret'],
+            'merchant_id'           => $creds['merchant_id'],
+            'operation_type'        => 'materialize',
+            'transaction_id'        => $transactionId,
+            'reservation_status_id' => 1,
+        ];
+
+        if ($memberId) {
+            $payload['member_id'] = $memberId;
+        }
+
+        $response = Http::withHeaders($this->getHeaders($creds['tenant_domain']))
+            ->post("{$this->baseUrl}/api/public/transaction/materialize", $payload);
+
+        return $this->handleResponse($response, 'TRANSACTION.MATERIALIZE_FAILED');
+    }
+
+    /**
      * Normalize HTTP responses and throw structured exceptions on error.
      */
     protected function handleResponse($response, string $defaultErrorCode): array

@@ -45,6 +45,8 @@ Route::prefix('booking')->group(function () {
     Route::post('/reserve', [BookingController::class, 'reserve']);
     Route::get('/history', [BookingController::class, 'history']);
     Route::get('/{bookingCode}', [BookingController::class, 'show']);
+    Route::post('/{bookingCode}/materialize', [BookingController::class, 'materialize']);
+    Route::patch('/{bookingCode}/status', [BookingController::class, 'updateStatus']);
 });
 
 // Extranet Property & Connection Management
@@ -56,4 +58,7 @@ Route::prefix('extranet')->group(function () {
     Route::post('/properties/{id}/test-connection', [ExtranetController::class, 'testConnection']);
     Route::get('/properties/{id}/tiers', [ExtranetController::class, 'getTiers']);
     Route::put('/properties/{id}/rooms/{roomId}/rate-plan', [ExtranetController::class, 'updateRoomRatePlan']);
+    Route::get('/properties/{id}/bookings', [ExtranetController::class, 'bookings']);
+    Route::post('/properties/{id}/bookings/{bookingId}/materialize', [ExtranetController::class, 'materializeBooking']);
+    Route::patch('/properties/{id}/bookings/{bookingId}/status', [ExtranetController::class, 'updateBookingStatus']);
 });

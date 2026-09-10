@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Property;
 use App\Models\MembershipProperty;
 use App\Models\Room;
+use App\Models\Booking;
 use App\Services\MembershipOAuthService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ExtranetController extends Controller
@@ -40,7 +42,7 @@ class ExtranetController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $property = Property::with(['membershipProperty', 'rooms', 'experiences'])->findOrFail($id);
+        $property = Property::with(['membershipProperty', 'rooms', 'experiences', 'bookings' => fn($q) => $q->orderBy('id', 'desc')])->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -65,6 +67,7 @@ class ExtranetController extends Controller
             'image_url' => 'nullable|url',
             'star_rating' => 'nullable|integer|min:1|max:5',
             'has_membership' => 'boolean',
+            'point_release_mode' => 'nullable|string|in:automated,checkin,checkout',
             'membership' => 'nullable|array',
             'membership.client_id' => 'nullable|string',
             'membership.client_secret' => 'nullable|string',
@@ -83,6 +86,7 @@ class ExtranetController extends Controller
             'image_url' => $validated['image_url'] ?? $property->image_url,
             'star_rating' => $validated['star_rating'] ?? $property->star_rating,
             'has_membership' => $validated['has_membership'] ?? $property->has_membership,
+            'point_release_mode' => $validated['point_release_mode'] ?? $property->point_release_mode ?? 'automated',
         ]);
 
         if (!empty($validated['membership'])) {
@@ -303,5 +307,145 @@ class ExtranetController extends Controller
             'message' => 'Property created successfully.',
             'data' => $property->load(['membershipProperty', 'rooms']),
         ], 201);
+    }
+
+    /**
+     * Get list of reservations for a property.
+     */
+    public function bookings(int $id): JsonResponse
+    {
+        $bookings = Booking::with('room')
+            ->where('property_id', $id)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $bookings,
+        ]);
+    }
+
+    /**
+     * Trigger point materialization manually from extranet.
+     */
+    public function materializeBooking(int $propertyId, int $bookingId): JsonResponse
+    {
+        $booking = Booking::with('property.membershipProperty')
+            ->where('property_id', $propertyId)
+            ->where('id', $bookingId)
+            ->firstOrFail();
+
+        if (!$booking->is_member || !$booking->member_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This reservation was not made by a loyalty member.',
+            ], 422);
+        }
+
+        if ($booking->is_points_materialized) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Points for this reservation have already been materialized.',
+                'data' => $booking,
+            ]);
+        }
+
+        $property = $booking->property;
+        if (!$property || !$property->has_membership || !$property->membershipProperty) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Membership connection is not configured for this hotel.',
+            ], 422);
+        }
+
+        try {
+            $txId = $booking->membership_transaction_id ?: $booking->reservation_code;
+            $res = $this->oauthService->materializeTransaction(
+                $property,
+                $txId,
+                $booking->member_id
+            );
+
+            $booking->update([
+                'is_points_materialized' => true,
+                'materialized_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pending points successfully released to member account!',
+                'data' => [
+                    'booking' => $booking,
+                    'result' => $res,
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::error('EXTRANET_POINT_MATERIALIZE_FAILED', [
+                'booking_id' => $bookingId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to materialize points: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update booking status and release points if applicable.
+     */
+    public function updateBookingStatus(Request $request, int $propertyId, int $bookingId): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:CONFIRMED,CHECKED_IN,CHECKED_OUT,CANCELLED',
+        ]);
+
+        $booking = Booking::with('property.membershipProperty')
+            ->where('property_id', $propertyId)
+            ->where('id', $bookingId)
+            ->firstOrFail();
+
+        $newStatus = $validated['status'];
+        $booking->status = $newStatus;
+        $booking->save();
+
+        $pointReleased = false;
+
+        $shouldReleaseOnCheckIn = ($newStatus === 'CHECKED_IN' && $booking->point_release_mode === 'checkin');
+        $shouldReleaseOnCheckOut = ($newStatus === 'CHECKED_OUT' && in_array($booking->point_release_mode, ['checkin', 'checkout']));
+
+        if (($shouldReleaseOnCheckIn || $shouldReleaseOnCheckOut) && !$booking->is_points_materialized && $booking->is_member) {
+            try {
+                $txId = $booking->membership_transaction_id ?: $booking->reservation_code;
+                $this->oauthService->materializeTransaction(
+                    $booking->property,
+                    $txId,
+                    $booking->member_id
+                );
+
+                $booking->update([
+                    'is_points_materialized' => true,
+                    'materialized_at' => now(),
+                ]);
+
+                $pointReleased = true;
+            } catch (Exception $e) {
+                Log::warning('EXTRANET_AUTO_MATERIALIZE_FAILED', [
+                    'booking_id' => $bookingId,
+                    'new_status' => $newStatus,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Reservation status updated to {$newStatus}.",
+            'data' => [
+                'booking' => $booking,
+                'points_released' => $pointReleased,
+            ],
+        ]);
     }
 }

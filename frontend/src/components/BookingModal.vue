@@ -276,6 +276,13 @@ watch(
   }
 )
 
+watch(isLoggedIn, (loggedIn) => {
+  if (loggedIn) {
+    if (memberName.value) guestName.value = memberName.value
+    if (memberEmail.value) guestEmail.value = memberEmail.value
+  }
+})
+
 const calculatedNights = computed(() => {
   if (!localCheckIn.value || !localCheckOut.value) return 1
   const d1 = new Date(localCheckIn.value)

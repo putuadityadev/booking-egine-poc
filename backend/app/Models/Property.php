@@ -24,6 +24,7 @@ class Property extends Model
         'gallery',
         'amenities',
         'has_membership',
+        'point_release_mode',
     ];
 
     protected $casts = [

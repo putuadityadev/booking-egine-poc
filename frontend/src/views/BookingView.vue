@@ -158,9 +158,9 @@
     <FloatingCartDrawer />
 
     <!-- Modals -->
-    <AuthModal />
     <BookingModal />
     <ConfirmationModal />
+    <AuthModal />
 
     <!-- Airbnb Light Footer -->
     <Footer />

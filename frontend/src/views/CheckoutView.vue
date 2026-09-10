@@ -59,15 +59,33 @@
           </div>
 
           <!-- Loyalty Points Awarded Card -->
-          <div v-if="confirmedBooking.membership?.points_earned" class="points-awarded-banner">
+          <div v-if="confirmedBooking.membership?.points_earned" class="points-awarded-banner" :class="{ 'is-pending': !confirmedBooking.membership?.is_points_materialized }">
             <div class="points-icon-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
+              <svg v-if="confirmedBooking.membership?.is_points_materialized" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
             </div>
             <div class="points-content">
-              <div class="points-heading">+{{ confirmedBooking.membership.points_earned }} Club Points Awarded</div>
-              <div class="points-subtext">Successfully synced and credited to your loyalty account.</div>
+              <div class="points-heading">
+                <span v-if="confirmedBooking.membership?.is_points_materialized">
+                  +{{ confirmedBooking.membership.points_earned }} Club Points Awarded!
+                </span>
+                <span v-else>
+                  ⏳ +{{ confirmedBooking.membership.points_earned }} Club Points Pending
+                </span>
+              </div>
+              <div class="points-subtext">
+                <span v-if="confirmedBooking.membership?.is_points_materialized">
+                  Successfully synced and credited to your loyalty account.
+                </span>
+                <span v-else>
+                  Points reserved. Will be automatically released to your account upon {{ confirmedBooking.membership.point_release_mode === 'checkin' ? 'check-in' : 'check-out' }}.
+                </span>
+              </div>
             </div>
           </div>
 
@@ -659,8 +677,8 @@ const handleConfirmAndPay = async () => {
     // Success response
     confirmedBooking.value = json.data
 
-    // Credit loyalty points locally in state
-    if (json.data?.membership?.points_earned && memberProfile.value?.member) {
+    // Credit loyalty points locally in state only if materialized
+    if (json.data?.membership?.points_earned && memberProfile.value?.member && json.data.membership.is_points_materialized) {
       const currentPts = memberProfile.value.member.points || 0
       updatePoints(currentPts + json.data.membership.points_earned)
     }
@@ -1536,6 +1554,23 @@ const handleConfirmAndPay = async () => {
   margin-bottom: 24px;
   width: 100%;
   text-align: left;
+}
+
+.points-awarded-banner.is-pending {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.points-awarded-banner.is-pending .points-icon-wrap {
+  background: #d97706;
+}
+
+.points-awarded-banner.is-pending .points-heading {
+  color: #92400e;
+}
+
+.points-awarded-banner.is-pending .points-subtext {
+  color: #b45309;
 }
 
 .points-icon-wrap {

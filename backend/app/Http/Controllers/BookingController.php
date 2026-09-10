@@ -153,6 +153,13 @@ class BookingController extends Controller
         // Transaction response from membership API
         $pointsEarned = 0;
         $trxResponse = null;
+        $membershipTxId = null;
+
+        // Resolve point release mode configured for the property
+        $pointReleaseMode = $property->point_release_mode ?? 'automated';
+        $isPending = ($pointReleaseMode === 'automated') ? 0 : 1;
+        $isMaterialized = ($isPending === 0);
+        $materializedAt = $isMaterialized ? now() : null;
 
         // Push combined transaction to Membership Platform if booking is made by an active member
         if ($isMember && $property->has_membership && $property->membershipProperty) {
@@ -165,7 +172,7 @@ class BookingController extends Controller
                 $transactionPayload = [
                     'code' => $reservationCode,
                     'member_id' => $validated['member_id'],
-                    'is_pending' => 0,
+                    'is_pending' => $isPending,
                     'before_tax_service' => $totalBeforeTaxService,
                     'after_tax_service' => $afterTaxService,
                     'price_type' => 'taxservice',
@@ -186,9 +193,12 @@ class BookingController extends Controller
                 $membershipResult = $this->oauthService->pushTransaction($property, $transactionPayload);
                 $trxResponse = $membershipResult;
 
-                // Extract points earned from membership response
+                // Extract points earned and transaction id from membership response
                 if (isset($membershipResult['data']['transaction']['point'])) {
                     $pointsEarned = (int) $membershipResult['data']['transaction']['point'];
+                }
+                if (isset($membershipResult['data']['transaction']['id'])) {
+                    $membershipTxId = $membershipResult['data']['transaction']['id'];
                 }
             } catch (Exception $e) {
                 Log::error('MEMBERSHIP_PUSH_TRANSACTION_FAILED', [
@@ -225,6 +235,10 @@ class BookingController extends Controller
             'member_id' => $validated['member_id'] ?? null,
             'member_tier' => $memberTier,
             'points_earned' => $pointsEarned,
+            'point_release_mode' => $pointReleaseMode,
+            'is_points_materialized' => $isMaterialized,
+            'materialized_at' => $materializedAt,
+            'membership_transaction_id' => $membershipTxId,
             'status' => 'CONFIRMED',
             'transaction_response' => $trxResponse,
         ]);
@@ -260,6 +274,9 @@ class BookingController extends Controller
                     'is_member' => $isMember,
                     'tier' => $memberTier,
                     'points_earned' => $pointsEarned,
+                    'point_release_mode' => $pointReleaseMode,
+                    'is_points_materialized' => $isMaterialized,
+                    'materialized_at' => $materializedAt?->toIso8601String(),
                     'push_success' => !empty($trxResponse),
                 ],
             ],
@@ -294,6 +311,138 @@ class BookingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $booking,
+        ]);
+    }
+
+    /**
+     * Materialize pending points for a specific booking.
+     */
+    public function materialize(Request $request, string $bookingCode): JsonResponse
+    {
+        $booking = Booking::with(['property.membershipProperty'])
+            ->where('reservation_code', $bookingCode)
+            ->firstOrFail();
+
+        if (!$booking->is_member || !$booking->member_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This reservation was not made by a loyalty member.',
+            ], 422);
+        }
+
+        if ($booking->is_points_materialized) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Points for this reservation have already been materialized.',
+                'data' => [
+                    'reservation_code' => $booking->reservation_code,
+                    'is_points_materialized' => true,
+                    'materialized_at' => $booking->materialized_at?->toIso8601String(),
+                ],
+            ]);
+        }
+
+        $property = $booking->property;
+        if (!$property || !$property->has_membership || !$property->membershipProperty) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Membership is not active for this property.',
+            ], 422);
+        }
+
+        try {
+            $transactionIdentifier = $booking->membership_transaction_id ?: $booking->reservation_code;
+            $materializeResult = $this->oauthService->materializeTransaction(
+                $property,
+                $transactionIdentifier,
+                $booking->member_id
+            );
+
+            $booking->update([
+                'is_points_materialized' => true,
+                'materialized_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pending points successfully released to member account!',
+                'data' => [
+                    'reservation_code' => $booking->reservation_code,
+                    'points_earned' => $booking->points_earned,
+                    'is_points_materialized' => true,
+                    'materialized_at' => $booking->materialized_at->toIso8601String(),
+                    'membership_result' => $materializeResult,
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::error('BOOKING_POINT_MATERIALIZATION_FAILED', [
+                'reservation_code' => $bookingCode,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to materialize points: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update booking status and trigger point release if configured for checkin/checkout.
+     */
+    public function updateStatus(Request $request, string $bookingCode): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:CONFIRMED,CHECKED_IN,CHECKED_OUT,CANCELLED',
+        ]);
+
+        $booking = Booking::with(['property.membershipProperty'])
+            ->where('reservation_code', $bookingCode)
+            ->firstOrFail();
+
+        $newStatus = $validated['status'];
+        $booking->status = $newStatus;
+        $booking->save();
+
+        $pointReleased = false;
+
+        // Auto materialize points when check-in or check-out is performed
+        $shouldReleaseOnCheckIn = ($newStatus === 'CHECKED_IN' && $booking->point_release_mode === 'checkin');
+        $shouldReleaseOnCheckOut = ($newStatus === 'CHECKED_OUT' && in_array($booking->point_release_mode, ['checkin', 'checkout']));
+
+        if (($shouldReleaseOnCheckIn || $shouldReleaseOnCheckOut) && !$booking->is_points_materialized && $booking->is_member) {
+            try {
+                $property = $booking->property;
+                $txId = $booking->membership_transaction_id ?: $booking->reservation_code;
+
+                $this->oauthService->materializeTransaction(
+                    $property,
+                    $txId,
+                    $booking->member_id
+                );
+
+                $booking->update([
+                    'is_points_materialized' => true,
+                    'materialized_at' => now(),
+                ]);
+
+                $pointReleased = true;
+            } catch (Exception $e) {
+                Log::warning('AUTO_POINT_MATERIALIZATION_ON_STATUS_FAILED', [
+                    'reservation_code' => $bookingCode,
+                    'new_status' => $newStatus,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Booking status updated to {$newStatus}.",
+            'data' => [
+                'booking' => $booking,
+                'points_released' => $pointReleased,
+            ],
         ]);
     }
 }

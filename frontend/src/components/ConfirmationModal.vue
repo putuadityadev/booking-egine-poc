@@ -22,18 +22,32 @@
         </div>
 
         <!-- Loyalty Points Awarded Card -->
-        <div v-if="confirmedReservation.membership?.points_earned" class="points-awarded-card">
+        <div v-if="confirmedReservation.membership?.points_earned" class="points-awarded-card" :class="{ 'is-pending': !confirmedReservation.membership?.is_points_materialized }">
           <div class="points-sparkle-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
+            <svg v-if="confirmedReservation.membership?.is_points_materialized" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sparkle-svg">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
             </svg>
           </div>
           <div class="points-info">
             <div class="points-title">
-              +{{ confirmedReservation.membership.points_earned }} Club Points Awarded!
+              <span v-if="confirmedReservation.membership?.is_points_materialized">
+                +{{ confirmedReservation.membership.points_earned }} Club Points Awarded!
+              </span>
+              <span v-else>
+                ⏳ +{{ confirmedReservation.membership.points_earned }} Club Points Pending
+              </span>
             </div>
             <div class="points-desc">
-              Successfully credited to your Jeevawasa Club account.
+              <span v-if="confirmedReservation.membership?.is_points_materialized">
+                Successfully credited to your Jeevawasa Club account.
+              </span>
+              <span v-else>
+                Points reserved. Will be automatically released to your account upon {{ confirmedReservation.membership.point_release_mode === 'checkin' ? 'check-in' : 'check-out' }}.
+              </span>
             </div>
           </div>
         </div>
@@ -207,6 +221,24 @@ const formatCurrency = (val) => {
   align-items: center;
   gap: 14px;
   margin-bottom: 16px;
+}
+
+.points-awarded-card.is-pending {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fde68a;
+}
+
+.points-awarded-card.is-pending .points-sparkle-badge {
+  background: #fef08a;
+  color: #b45309;
+}
+
+.points-awarded-card.is-pending .points-title {
+  color: #92400e;
+}
+
+.points-awarded-card.is-pending .points-desc {
+  color: #b45309;
 }
 
 .points-sparkle-badge {
