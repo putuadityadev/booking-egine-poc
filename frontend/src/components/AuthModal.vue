@@ -5,10 +5,9 @@
       <div class="auth-header">
         <div class="header-brand-box">
           <img
-            :src="logoFailed ? '/hotel-brand-logo.svg' : (resolvedLogo || '/hotel-brand-logo.svg')"
+            :src="resolvedLogo"
             :alt="resolvedMerchantName"
             class="merchant-brand-logo"
-            @error="logoFailed = true"
           />
 
           <div class="brand-text-block">
@@ -148,25 +147,6 @@
               </svg>
               <span>Continue with Google</span>
             </button>
-
-            <!-- Quick Demo Member Simulation -->
-            <div class="demo-sso-strip">
-              <span class="demo-label">Dev 1-Click SSO:</span>
-              <button
-                type="button"
-                class="pill-quick-member"
-                @click="handleQuickGoogleLogin('madewedaoffice@gmail.com')"
-              >
-                Made Weda
-              </button>
-              <button
-                type="button"
-                class="pill-quick-member"
-                @click="handleQuickGoogleLogin('putuadityasatriawan@gmail.com')"
-              >
-                Aditya
-              </button>
-            </div>
           </div>
 
           <!-- Bottom Switch to Register -->
@@ -310,8 +290,8 @@
               </div>
             </div>
 
-            <!-- Email -->
-            <div class="input-field-wrap">
+            <!-- Email Field with Send Button on Right -->
+            <div class="input-field-wrap with-action-btn" :class="{ 'is-verified': isEmailVerified }">
               <span class="input-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
                   <rect width="20" height="16" x="2" y="4" rx="2" />
@@ -322,9 +302,71 @@
                 v-model="regEmail"
                 type="email"
                 required
+                :readonly="isEmailVerified"
                 placeholder="Email address"
-                class="airbnb-input"
+                class="airbnb-input has-right-action"
+                @input="handleEmailChange"
               />
+              <div class="field-right-action">
+                <button
+                  v-if="!isEmailVerified"
+                  type="button"
+                  class="btn-action-send"
+                  :disabled="!isValidEmail(regEmail) || isRegisterSendingOtp || registerCountdown > 0"
+                  @click="handleSendRegisterOtp"
+                  title="Send verification OTP"
+                >
+                  <span v-if="isRegisterSendingOtp">Sending...</span>
+                  <span v-else-if="registerCountdown > 0">{{ registerCountdown }}s</span>
+                  <span v-else-if="isRegisterOtpSent">Resend</span>
+                  <span v-else>Send</span>
+                </button>
+                <div v-else class="badge-verified-inline">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="verified-svg">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>Verified</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Underneath OTP Field (Auto-appears when OTP is sent) with Verify Button on Right -->
+            <div v-if="isRegisterOtpSent && !isEmailVerified" class="input-field-wrap with-action-btn otp-appear-field">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M7 11h10M7 15h10M7 7h4" />
+                </svg>
+              </span>
+              <input
+                v-model="regOtpCode"
+                type="text"
+                maxlength="6"
+                placeholder="Enter 6-digit OTP from email"
+                class="airbnb-input has-right-action"
+                autofocus
+              />
+              <div class="field-right-action">
+                <button
+                  type="button"
+                  class="btn-action-verify"
+                  :disabled="regOtpCode.length < 6 || isRegisterVerifyingOtp"
+                  @click="handleVerifyRegisterOtp"
+                >
+                  <span v-if="isRegisterVerifyingOtp">Checking...</span>
+                  <span v-else>Verify</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Status / Feedback message -->
+            <div v-if="registerSuccessMsg" class="reg-feedback-note" :class="{ 'is-success': isEmailVerified }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="note-svg">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span>{{ registerSuccessMsg }}</span>
             </div>
 
             <!-- Phone -->
@@ -344,7 +386,7 @@
               />
             </div>
 
-            <!-- Password -->
+            <!-- Password with Show/Hide -->
             <div class="input-field-wrap">
               <span class="input-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
@@ -354,31 +396,57 @@
               </span>
               <input
                 v-model="regPassword"
-                type="password"
+                :type="showRegPassword ? 'text' : 'password'"
                 required
                 placeholder="Create Password (min 6 chars)"
-                class="airbnb-input"
+                class="airbnb-input has-right-action"
               />
-            </div>
-
-            <!-- Autofill Demo button -->
-            <div class="quick-preset-row">
-              <span class="preset-label">Demo:</span>
               <button
                 type="button"
-                class="preset-pill"
-                @click="autofillDemoRegistration"
+                class="btn-toggle-eye"
+                @click="showRegPassword = !showRegPassword"
+                :title="showRegPassword ? 'Hide password' : 'Show password'"
+                aria-label="Toggle password visibility"
               >
-                ⚡ Autofill Sample Member
+                <svg v-if="showRegPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-svg">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                  <line x1="2" y1="2" x2="22" y2="22" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-svg">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
               </button>
+            </div>
+
+            <!-- Referral Code (Optional) - reflects with marketing module -->
+            <div class="input-field-wrap">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+              </span>
+              <input
+                v-model="regReferralCode"
+                type="text"
+                placeholder="Referral Code (Optional)"
+                class="airbnb-input uppercase-code"
+              />
+              <span v-if="isReferralAutoFilled" class="badge-referral-param" title="Auto-filled from campaign URL">
+                From Link
+              </span>
             </div>
 
             <button
               type="submit"
               class="btn-primary btn-submit-airbnb"
-              :disabled="isLoading"
+              :disabled="isLoading || (!isEmailVerified && !registrationToken)"
             >
               <span v-if="isLoading">Creating Account...</span>
+              <span v-else-if="!isEmailVerified">Verify Email to Complete</span>
               <span v-else>Join Jeevawasa Club</span>
             </button>
           </form>
@@ -413,6 +481,8 @@ const {
   requestOtp,
   verifyOtp,
   loginWithGoogle,
+  requestRegisterOtp,
+  verifyRegisterOtp,
   registerMember,
   isLoading,
   authError,
@@ -422,7 +492,6 @@ const { activePropertyId, activeProperty } = useBooking()
 
 const modalCardRef = ref(null)
 const viewMode = ref('login') // 'login' | 'otp' | 'register'
-const logoFailed = ref(false)
 
 // Login Form States
 const loginEmail = ref('madewedaoffice@gmail.com')
@@ -442,17 +511,54 @@ const regLastName = ref('Satriawan')
 const regEmail = ref('')
 const regPhone = ref('+6281234567890')
 const regPassword = ref('Passw0rd123!')
+const showRegPassword = ref(false)
+const regReferralCode = ref('')
+const isReferralAutoFilled = ref(false)
+
+// Register Email OTP Verification States
+const regOtpCode = ref('')
+const isRegisterOtpSent = ref(false)
+const isEmailVerified = ref(false)
+const registrationToken = ref('')
+const isRegisterSendingOtp = ref(false)
+const isRegisterVerifyingOtp = ref(false)
+const registerCountdown = ref(0)
+let registerTimer = null
+const registerSuccessMsg = ref('')
+
+// Sync Referral Code from URL parameters (?referral=... / ?ref=... / ?referral_code=...)
+const syncReferralFromUrl = () => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('referral') || params.get('ref') || params.get('referral_code')
+    if (code) {
+      regReferralCode.value = code.trim()
+      isReferralAutoFilled.value = true
+      try {
+        sessionStorage.setItem('stayhub_referral_code', code.trim())
+      } catch (e) {}
+    } else {
+      try {
+        const stored = sessionStorage.getItem('stayhub_referral_code')
+        if (stored) {
+          regReferralCode.value = stored
+          isReferralAutoFilled.value = true
+        }
+      } catch (e) {}
+    }
+  }
+}
 
 // Lifecycle & Watchers
 onMounted(() => {
   if (activePropertyId.value) {
     fetchPropertyContext(activePropertyId.value)
   }
+  syncReferralFromUrl()
   initGoogleAuth()
 })
 
 watch(activePropertyId, (newId) => {
-  logoFailed.value = false
   if (newId) {
     fetchPropertyContext(newId)
   }
@@ -463,13 +569,14 @@ watch(isAuthModalOpen, (isOpen) => {
     authError.value = ''
     viewMode.value = 'login'
     otpRequested.value = false
-    logoFailed.value = false
+    syncReferralFromUrl()
     nextTick(() => {
       animateModalOpen()
       initGoogleAuth()
     })
   } else {
     clearInterval(timerInterval)
+    clearInterval(registerTimer)
   }
 })
 
@@ -528,6 +635,7 @@ const switchToOtp = () => {
 const switchToRegister = () => {
   viewMode.value = 'register'
   authError.value = ''
+  syncReferralFromUrl()
   animateViewSwitch()
 }
 
@@ -654,32 +762,84 @@ const formatTimer = (sec) => {
   return `${m}:${s < 10 ? '0' : ''}${s}`
 }
 
-// Registration
-const autofillDemoRegistration = () => {
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
-  regFirstName.value = 'Aditya'
-  regLastName.value = 'Satriawan'
-  regEmail.value = `aditya.guest.${randomSuffix}@example.com`
-  regPhone.value = '+6281234567890'
-  regPassword.value = 'Passw0rd123!'
+// Registration Email & Verification Handlers
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim())
+}
+
+const handleEmailChange = () => {
+  if (isEmailVerified.value || isRegisterOtpSent.value) {
+    isEmailVerified.value = false
+    isRegisterOtpSent.value = false
+    registrationToken.value = ''
+    regOtpCode.value = ''
+    registerSuccessMsg.value = ''
+    clearInterval(registerTimer)
+    registerCountdown.value = 0
+  }
+}
+
+const handleSendRegisterOtp = async () => {
+  if (!isValidEmail(regEmail.value) || isRegisterSendingOtp.value || registerCountdown.value > 0) return
+  isRegisterSendingOtp.value = true
+  authError.value = ''
+  registerSuccessMsg.value = ''
+  try {
+    const res = await requestRegisterOtp(activePropertyId.value, regEmail.value.trim())
+    isRegisterOtpSent.value = true
+    registerSuccessMsg.value = res?.data?.message || 'Verification OTP sent to your email. (Check Mailpit at http://localhost:8025)'
+    registerCountdown.value = 120
+    clearInterval(registerTimer)
+    registerTimer = setInterval(() => {
+      if (registerCountdown.value > 0) {
+        registerCountdown.value--
+      } else {
+        clearInterval(registerTimer)
+      }
+    }, 1000)
+  } catch (err) {
+    authError.value = err.message || 'Failed to dispatch registration OTP code.'
+  } finally {
+    isRegisterSendingOtp.value = false
+  }
+}
+
+const handleVerifyRegisterOtp = async () => {
+  if (!regOtpCode.value || regOtpCode.value.trim().length < 6 || isRegisterVerifyingOtp.value) return
+  isRegisterVerifyingOtp.value = true
+  authError.value = ''
+  try {
+    const res = await verifyRegisterOtp(activePropertyId.value, regEmail.value.trim(), regOtpCode.value.trim())
+    registrationToken.value = res.registration_token
+    isEmailVerified.value = true
+    registerSuccessMsg.value = 'Email successfully verified! You can now join Jeevawasa Club below.'
+    clearInterval(registerTimer)
+    registerCountdown.value = 0
+  } catch (err) {
+    authError.value = err.message || 'Invalid or expired OTP code. Please check and try again.'
+  } finally {
+    isRegisterVerifyingOtp.value = false
+  }
 }
 
 const handleRegisterSubmit = async () => {
-  if (!regEmail.value) {
-    autofillDemoRegistration()
+  if (!isEmailVerified.value || !registrationToken.value) {
+    authError.value = 'Please click Send to request an OTP and verify your email address first.'
+    return
   }
 
   try {
     await registerMember(activePropertyId.value, {
-      first_name: regFirstName.value,
-      last_name: regLastName.value,
-      email: regEmail.value,
-      phone: regPhone.value,
+      first_name: regFirstName.value.trim(),
+      last_name: regLastName.value.trim(),
+      email: regEmail.value.trim(),
+      phone: regPhone.value.trim(),
       password: regPassword.value,
-      registration_token: 'bypass_token_' + Date.now(),
+      registration_token: registrationToken.value,
+      referral_code: regReferralCode.value ? regReferralCode.value.trim() : null,
     })
   } catch (err) {
-    authError.value = 'Registration requires email verification. Please use OTP or Google SSO.'
+    authError.value = err.message || 'Registration failed. Please review your details and try again.'
   }
 }
 </script>
@@ -1021,35 +1181,155 @@ const handleRegisterSubmit = async () => {
   min-height: 44px;
 }
 
-.demo-sso-strip {
+/* Register Email OTP & Verification Actions */
+.with-action-btn {
+  position: relative;
+}
+
+.with-action-btn .has-right-action {
+  padding-right: 90px;
+}
+
+.field-right-action {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--colors-muted);
-  margin-top: 2px;
-  justify-content: center;
+  z-index: 2;
 }
 
-.demo-label {
-  font-size: 11px;
-}
-
-.pill-quick-member {
-  font-size: 11px;
-  background: var(--colors-surface-soft);
-  border: 1px solid var(--colors-hairline-soft);
-  padding: 2px 8px;
-  border-radius: 12px;
-  color: var(--colors-body);
+.btn-action-send {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--colors-primary);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.pill-quick-member:hover {
-  border-color: #ff385c;
-  color: #ff385c;
-  background: #fff1f2;
+.btn-action-send:hover:not(:disabled) {
+  background: var(--colors-primary-active);
+}
+
+.btn-action-send:disabled {
+  background: var(--colors-hairline-soft);
+  color: var(--colors-muted);
+  cursor: not-allowed;
+  border: 1px solid var(--colors-hairline);
+}
+
+.btn-action-verify {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #15803d;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-action-verify:hover:not(:disabled) {
+  background: #166534;
+}
+
+.btn-action-verify:disabled {
+  background: var(--colors-hairline-soft);
+  color: var(--colors-muted);
+  cursor: not-allowed;
+  border: 1px solid var(--colors-hairline);
+}
+
+.badge-verified-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.badge-verified-inline .verified-svg {
+  width: 13px;
+  height: 13px;
+}
+
+.otp-appear-field {
+  animation: otpFieldAppear 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes otpFieldAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reg-feedback-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: -2px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.reg-feedback-note.is-success {
+  color: #15803d;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.reg-feedback-note .note-svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.uppercase-code {
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+}
+
+.badge-referral-param {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* OTP Specific Styles */

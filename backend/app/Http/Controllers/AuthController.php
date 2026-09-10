@@ -232,6 +232,7 @@ class AuthController extends Controller
             'phone' => 'required|string',
             'password' => 'required|string|min:6',
             'registration_token' => 'required|string',
+            'referral_code' => 'nullable|string|max:50',
             'property_id' => 'nullable|integer',
         ]);
 

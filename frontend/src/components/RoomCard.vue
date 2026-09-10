@@ -206,17 +206,18 @@ const formatCurrency = (val) => {
 <style scoped>
 .room-card {
   background: var(--colors-canvas);
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid var(--colors-hairline-soft);
   overflow: hidden;
   box-shadow: none;
   display: flex;
   flex-direction: column;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .room-card:hover {
-  border-color: var(--colors-ink);
+  border-color: var(--colors-border-strong);
+  transform: translateY(-2px);
 }
 
 /* Photo Box */
@@ -341,7 +342,7 @@ const formatCurrency = (val) => {
 
 /* Details */
 .room-details {
-  padding: 20px;
+  padding: 14px 14px 16px 14px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -351,24 +352,28 @@ const formatCurrency = (val) => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
 .room-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--colors-ink);
-  line-height: 1.3;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .capacity-pill {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--colors-muted);
   background: var(--colors-surface-soft);
   border: 1px solid var(--colors-hairline-soft);
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
@@ -376,10 +381,13 @@ const formatCurrency = (val) => {
 .room-spec-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 11.5px;
   color: var(--colors-muted);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .free-cancel-tag {
@@ -390,17 +398,17 @@ const formatCurrency = (val) => {
 .features-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 4px;
+  margin-bottom: 10px;
 }
 
 .feature-tag {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   background: var(--colors-surface-soft);
   color: var(--colors-body);
   border: 1px solid var(--colors-hairline-soft);
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: var(--radius-full);
 }
 
@@ -408,7 +416,7 @@ const formatCurrency = (val) => {
   height: 1px;
   background: var(--colors-hairline-soft);
   margin-top: auto;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 /* Pricing & CTA */
@@ -416,16 +424,18 @@ const formatCurrency = (val) => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 12px;
+  gap: 6px;
 }
 
 .pricing-block {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .strikethrough-price {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--colors-muted-soft);
   text-decoration: line-through;
 }
@@ -433,53 +443,59 @@ const formatCurrency = (val) => {
 .final-price-row {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 3px;
 }
 
 .price-value {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--colors-ink);
+  white-space: nowrap;
 }
 
 .price-unit {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--colors-muted);
+  white-space: nowrap;
 }
 
 .loyalty-perk-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 9.5px;
   font-weight: 600;
   color: #6d28d9;
   background: #ede9fe;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
-  margin-top: 4px;
+  margin-top: 3px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .perk-svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
 }
 
 .arrow-svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 
 .guest-member-hint {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--colors-primary);
-  margin-top: 4px;
+  margin-top: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
 
 .highlight-member-rate {
@@ -488,19 +504,19 @@ const formatCurrency = (val) => {
 }
 
 .member-tag {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   background: #fff1f2;
   color: #e11d48;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
   border: 1px solid rgba(225, 29, 72, 0.2);
 }
 
 .member-callout {
   text-decoration: underline;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--colors-body);
 }
 
@@ -511,18 +527,19 @@ const formatCurrency = (val) => {
 .btn-reserve {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  font-size: 13px;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cart-btn-svg,
 .arrow-btn-svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 </style>

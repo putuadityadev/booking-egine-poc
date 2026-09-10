@@ -354,8 +354,8 @@ const handleOpenReserveModal = (room) => {
 /* Rooms Grid */
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 /* Experiences Grid */
@@ -608,10 +608,25 @@ const handleOpenReserveModal = (room) => {
   flex: 1;
 }
 
-@media (max-width: 744px) {
+@media (max-width: 1180px) {
+  .rooms-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 860px) {
+  .rooms-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 580px) {
   .rooms-grid,
   .experiences-grid {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 </style>
