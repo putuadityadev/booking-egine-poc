@@ -12,7 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Trust Cloudflare Tunnel proxies so X-Forwarded-For, HTTPS, and APP_URL resolve correctly.
+        // Cloudflare forwards traffic via its edge IPs — we trust all proxies here since CF handles security.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
