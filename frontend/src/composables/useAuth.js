@@ -10,9 +10,10 @@ const authModalMode = ref('signin') // 'signin' | 'register'
 const signInSubTab = ref('otp') // 'otp' | 'google' | 'password'
 
 export function useAuth() {
-  const bffUrl = (import.meta.env.VITE_BFF_API_URL !== undefined && import.meta.env.VITE_BFF_API_URL !== '')
+  const rawBffUrl = (import.meta.env.VITE_BFF_API_URL !== undefined && import.meta.env.VITE_BFF_API_URL !== '')
     ? import.meta.env.VITE_BFF_API_URL
     : (import.meta.env.DEV ? 'http://localhost:8002' : '')
+  const bffUrl = String(rawBffUrl).trim().replace(/^=+/, '').replace(/\/+$/, '')
 
   const isLoggedIn = computed(() => !!token.value && !!memberProfile.value)
   const isAuthenticated = isLoggedIn
