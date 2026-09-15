@@ -167,6 +167,92 @@ class AuthController extends Controller
     }
 
     /**
+     * Request password reset instructions / email.
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'property_id' => 'nullable|integer',
+        ]);
+
+        try {
+            $property = $this->resolveProperty($request);
+            $response = $this->oauthService->forgotPassword(
+                $property,
+                $request->input('email')
+            );
+
+            return response()->json($response);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Check if a password reset token is valid.
+     */
+    public function checkResetToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'property_id' => 'nullable|integer',
+        ]);
+
+        try {
+            $property = $this->resolveProperty($request);
+            $response = $this->oauthService->checkResetToken(
+                $property,
+                $request->input('email'),
+                $request->input('token')
+            );
+
+            return response()->json($response);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Reset member password using validated token.
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|min:6',
+            'password_confirmation' => 'required|same:password',
+            'property_id' => 'nullable|integer',
+        ]);
+
+        try {
+            $property = $this->resolveProperty($request);
+            $response = $this->oauthService->resetPassword(
+                $property,
+                $request->input('email'),
+                $request->input('token'),
+                $request->input('password'),
+                $request->input('password_confirmation')
+            );
+
+            return response()->json($response);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
      * Request OTP for registration.
      */
     public function registerOtpRequest(Request $request): JsonResponse

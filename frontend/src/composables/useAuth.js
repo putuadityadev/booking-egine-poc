@@ -222,6 +222,100 @@ export function useAuth() {
     }
   }
 
+  const forgotPassword = async (propertyId, email) => {
+    isLoading.value = true
+    authError.value = ''
+    try {
+      const res = await fetch(`${bffUrl}/api/auth/password/forgot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          property_id: propertyId,
+          email: email.trim(),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.status) {
+        throw new Error(data.message || 'Failed to send password reset instructions.')
+      }
+
+      return data
+    } catch (err) {
+      authError.value = err.message
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const checkResetToken = async (propertyId, email, token) => {
+    isLoading.value = true
+    authError.value = ''
+    try {
+      const res = await fetch(`${bffUrl}/api/auth/password/check-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          property_id: propertyId,
+          email: email.trim(),
+          token: token.trim(),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.status) {
+        throw new Error(data.message || 'Reset token is invalid or expired.')
+      }
+
+      return data
+    } catch (err) {
+      authError.value = err.message
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const resetPassword = async (propertyId, email, token, password, passwordConfirmation) => {
+    isLoading.value = true
+    authError.value = ''
+    try {
+      const res = await fetch(`${bffUrl}/api/auth/password/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          property_id: propertyId,
+          email: email.trim(),
+          token: token.trim(),
+          password,
+          password_confirmation: passwordConfirmation,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.status) {
+        throw new Error(data.message || 'Failed to reset password.')
+      }
+
+      return data
+    } catch (err) {
+      authError.value = err.message
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const requestRegisterOtp = async (propertyId, email) => {
     isLoading.value = true
     authError.value = ''
@@ -404,6 +498,9 @@ export function useAuth() {
     verifyOtp,
     loginWithGoogle,
     loginWithPassword,
+    forgotPassword,
+    checkResetToken,
+    resetPassword,
     requestRegisterOtp,
     verifyRegisterOtp,
     registerMember,

@@ -102,7 +102,7 @@
 
             <!-- Sub-links: Forgot Password & Login with OTP -->
             <div class="auth-sublinks-row">
-              <a href="#" class="text-sublink" @click.prevent="switchToOtp">
+              <a href="#" class="text-sublink" @click.prevent="switchToForgot">
                 Forgot password?
               </a>
               <a href="#" class="text-sublink font-bold text-rausch" @click.prevent="switchToOtp">
@@ -458,6 +458,202 @@
             </a>
           </div>
         </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 4: FORGOT PASSWORD REQUEST                                -->
+        <!-- ============================================================== -->
+        <div v-else-if="viewMode === 'forgot'" class="auth-view-content">
+          <div class="title-section">
+            <h3 class="auth-title">Reset Password</h3>
+            <p class="auth-subtitle">
+              Enter your registered email address and we'll send you instructions to reset your password.
+            </p>
+          </div>
+
+          <div v-if="forgotSuccessMsg" class="auth-alert-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-svg">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <div class="success-msg-wrap">
+              <span class="success-text">{{ forgotSuccessMsg }}</span>
+            </div>
+          </div>
+
+          <form v-if="!forgotSuccessMsg" @submit.prevent="handleForgotPassword" class="form-unified">
+            <div class="input-field-wrap">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </span>
+              <input
+                v-model="forgotEmail"
+                type="email"
+                required
+                placeholder="Registered member email"
+                class="airbnb-input"
+              />
+            </div>
+
+            <div class="quick-preset-row">
+              <span class="preset-label">Quick fill:</span>
+              <button
+                type="button"
+                class="preset-pill"
+                @click="forgotEmail = 'madewedaoffice@gmail.com'"
+              >
+                madewedaoffice@gmail.com
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              class="btn-primary btn-submit-airbnb"
+              :disabled="isLoading"
+            >
+              <span v-if="isLoading">Sending Instructions...</span>
+              <span v-else>Send Reset Instructions</span>
+            </button>
+          </form>
+
+          <div class="auth-sublinks-row mt-3">
+            <a href="#" class="text-sublink text-rausch" @click.prevent="switchToReset">
+              Already have a reset token? Enter Token &rarr;
+            </a>
+          </div>
+
+          <div class="auth-bottom-switch">
+            <a href="#" class="text-back-link" @click.prevent="switchToLogin">
+              &larr; Back to Email & Password Login
+            </a>
+          </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 5: RESET PASSWORD FORM                                    -->
+        <!-- ============================================================== -->
+        <div v-else-if="viewMode === 'reset'" class="auth-view-content">
+          <div class="title-section">
+            <h3 class="auth-title">Set New Password</h3>
+            <p class="auth-subtitle">
+              Enter the reset token received in your email and your new password.
+            </p>
+          </div>
+
+          <div v-if="resetSuccessMsg" class="auth-alert-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-svg">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <div class="success-msg-wrap">
+              <span class="success-text">{{ resetSuccessMsg }}</span>
+              <span class="error-hint">Redirecting to login...</span>
+            </div>
+          </div>
+
+          <form v-if="!resetSuccessMsg" @submit.prevent="handleResetPassword" class="form-unified">
+            <!-- Email -->
+            <div class="input-field-wrap">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </span>
+              <input
+                v-model="resetEmail"
+                type="email"
+                required
+                placeholder="Member email"
+                class="airbnb-input"
+              />
+            </div>
+
+            <!-- Token -->
+            <div class="input-field-wrap">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <path d="m21 2-2 2m-6 6 2-2m-4 4 2-2m-6 6 2-2M3 21l3-3m0 0 8-8a4.24 4.24 0 0 0-6-6l-8 8a4.24 4.24 0 0 0 6 6z" />
+                </svg>
+              </span>
+              <input
+                v-model="resetToken"
+                type="text"
+                required
+                placeholder="Reset Token (from email)"
+                class="airbnb-input"
+              />
+            </div>
+
+            <!-- New Password -->
+            <div class="input-field-wrap">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <input
+                v-model="resetNewPassword"
+                :type="showResetPassword ? 'text' : 'password'"
+                required
+                placeholder="New Password (min 6 chars)"
+                class="airbnb-input"
+              />
+              <button
+                type="button"
+                class="btn-toggle-eye"
+                @click="showResetPassword = !showResetPassword"
+                :title="showResetPassword ? 'Hide password' : 'Show password'"
+              >
+                <svg v-if="showResetPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-svg">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                  <line x1="2" y1="2" x2="22" y2="22" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-svg">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="input-field-wrap">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-svg">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <input
+                v-model="resetConfirmPassword"
+                :type="showResetPassword ? 'text' : 'password'"
+                required
+                placeholder="Confirm New Password"
+                class="airbnb-input"
+              />
+            </div>
+
+            <button
+              type="submit"
+              class="btn-primary btn-submit-airbnb"
+              :disabled="isLoading"
+            >
+              <span v-if="isLoading">Updating Password...</span>
+              <span v-else>Save New Password</span>
+            </button>
+          </form>
+
+          <div class="auth-bottom-switch">
+            <a href="#" class="text-back-link" @click.prevent="switchToLogin">
+              &larr; Back to Email & Password Login
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -469,7 +665,7 @@ import gsap from 'gsap'
 import { useAuth } from '../composables/useAuth'
 import { useBooking } from '../composables/useBooking'
 
-const GOOGLE_CLIENT_ID = '659157255403-l6fikllu69q2h18bc6e33rn0rekuogd7.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '840783649088-tabdq0ps1i6e1d2vtfsaffsdgs9apcq9.apps.googleusercontent.com'
 const isGoogleGsiRendered = ref(false)
 
 const {
@@ -478,6 +674,9 @@ const {
   propertyContext,
   fetchPropertyContext,
   loginWithPassword,
+  forgotPassword,
+  checkResetToken,
+  resetPassword,
   requestOtp,
   verifyOtp,
   loginWithGoogle,
@@ -491,7 +690,7 @@ const {
 const { activePropertyId, activeProperty } = useBooking()
 
 const modalCardRef = ref(null)
-const viewMode = ref('login') // 'login' | 'otp' | 'register'
+const viewMode = ref('login') // 'login' | 'otp' | 'register' | 'forgot' | 'reset'
 
 // Login Form States
 const loginEmail = ref('madewedaoffice@gmail.com')
@@ -637,6 +836,68 @@ const switchToRegister = () => {
   authError.value = ''
   syncReferralFromUrl()
   animateViewSwitch()
+}
+
+const switchToForgot = () => {
+  viewMode.value = 'forgot'
+  authError.value = ''
+  forgotSuccessMsg.value = ''
+  animateViewSwitch()
+}
+
+const switchToReset = () => {
+  viewMode.value = 'reset'
+  authError.value = ''
+  resetSuccessMsg.value = ''
+  animateViewSwitch()
+}
+
+// Forgot & Reset Password States
+const forgotEmail = ref('madewedaoffice@gmail.com')
+const forgotSuccessMsg = ref('')
+
+const resetEmail = ref('madewedaoffice@gmail.com')
+const resetToken = ref('')
+const resetNewPassword = ref('')
+const resetConfirmPassword = ref('')
+const showResetPassword = ref(false)
+const resetSuccessMsg = ref('')
+
+const handleForgotPassword = async () => {
+  if (!forgotEmail.value) return
+  authError.value = ''
+  forgotSuccessMsg.value = ''
+  try {
+    const res = await forgotPassword(activePropertyId.value, forgotEmail.value)
+    forgotSuccessMsg.value = res.data?.message || res.message || 'Password reset instructions have been sent to your email.'
+  } catch (err) {
+    authError.value = err.message || 'Failed to send reset instructions.'
+  }
+}
+
+const handleResetPassword = async () => {
+  if (!resetEmail.value || !resetToken.value || !resetNewPassword.value) return
+  if (resetNewPassword.value !== resetConfirmPassword.value) {
+    authError.value = 'Passwords do not match.'
+    return
+  }
+  authError.value = ''
+  resetSuccessMsg.value = ''
+  try {
+    const res = await resetPassword(
+      activePropertyId.value,
+      resetEmail.value,
+      resetToken.value,
+      resetNewPassword.value,
+      resetConfirmPassword.value
+    )
+    resetSuccessMsg.value = res.data?.message || res.message || 'Password updated successfully!'
+    setTimeout(() => {
+      switchToLogin()
+    }, 2000)
+  } catch (err) {
+    authError.value = err.message || 'Failed to reset password.'
+  }
 }
 
 // Google Identity Services (GIS)
@@ -975,6 +1236,41 @@ const handleRegisterSubmit = async () => {
   margin-bottom: 16px;
   font-size: 12px;
   color: #be123c;
+}
+
+.auth-alert-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #15803d;
+}
+
+.success-msg-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.success-text {
+  font-weight: 500;
+}
+
+.text-back-link {
+  font-size: 12px;
+  color: var(--colors-body);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.text-back-link:hover {
+  color: var(--colors-text);
+  text-decoration: underline;
 }
 
 .alert-svg {

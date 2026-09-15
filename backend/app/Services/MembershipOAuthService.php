@@ -332,6 +332,60 @@ class MembershipOAuthService
     }
 
     /**
+     * Request password reset instructions or link.
+     */
+    public function forgotPassword(Property $property, string $email): array
+    {
+        $creds = $this->getCredentials($property);
+
+        $response = Http::withHeaders($this->getHeaders($creds['tenant_domain']))
+            ->post("{$this->baseUrl}/api/v2/oauth/password/forgot", [
+                'client_id' => $creds['client_id'],
+                'client_secret' => $creds['client_secret'],
+                'email' => $email,
+            ]);
+
+        return $this->handleResponse($response, 'OAUTH.PASSWORD_FORGOT_FAILED');
+    }
+
+    /**
+     * Validate a password reset token.
+     */
+    public function checkResetToken(Property $property, string $email, string $token): array
+    {
+        $creds = $this->getCredentials($property);
+
+        $response = Http::withHeaders($this->getHeaders($creds['tenant_domain']))
+            ->post("{$this->baseUrl}/api/v2/oauth/password/check-token", [
+                'client_id' => $creds['client_id'],
+                'email' => $email,
+                'token' => $token,
+            ]);
+
+        return $this->handleResponse($response, 'OAUTH.PASSWORD_CHECK_TOKEN_FAILED');
+    }
+
+    /**
+     * Reset member password using a validated token.
+     */
+    public function resetPassword(Property $property, string $email, string $token, string $password, string $passwordConfirmation): array
+    {
+        $creds = $this->getCredentials($property);
+
+        $response = Http::withHeaders($this->getHeaders($creds['tenant_domain']))
+            ->post("{$this->baseUrl}/api/v2/oauth/password/reset", [
+                'client_id' => $creds['client_id'],
+                'client_secret' => $creds['client_secret'],
+                'email' => $email,
+                'token' => $token,
+                'password' => $password,
+                'password_confirmation' => $passwordConfirmation,
+            ]);
+
+        return $this->handleResponse($response, 'OAUTH.PASSWORD_RESET_FAILED');
+    }
+
+    /**
      * Normalize HTTP responses and throw structured exceptions on error.
      */
     protected function handleResponse($response, string $defaultErrorCode): array
