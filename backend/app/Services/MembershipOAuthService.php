@@ -42,11 +42,15 @@ class MembershipOAuthService
     protected function getHeaders(string $tenantDomain, ?string $bearerToken = null): array
     {
         $headers = [
-            'Host' => "{$tenantDomain}:8000",
             'X-Tenant-Domain' => $tenantDomain,
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
         ];
+
+        // Only override Host header in local docker environment
+        if (str_contains($this->baseUrl, 'myapp') || str_contains($this->baseUrl, 'localhost')) {
+            $headers['Host'] = "{$tenantDomain}:8000";
+        }
 
         if ($bearerToken) {
             $headers['Authorization'] = "Bearer {$bearerToken}";
@@ -79,10 +83,10 @@ class MembershipOAuthService
         $context = $this->handleResponse($response, 'OAUTH.CONNECTION_TEST_FAILED');
         $data = $context['data'] ?? $context;
 
-        // Auto-resolve merchant_id from branch.id or merchant.id if not provided
+        // Auto-resolve merchant_id from merchant.id (or fallback branch.id) if not provided
         $resolvedMerchantId = !empty($merchantId)
             ? $merchantId
-            : ($data['branch']['id'] ?? $data['merchant']['id'] ?? null);
+            : ($data['merchant']['id'] ?? $data['branch']['id'] ?? null);
 
         $resolvedCorporateId = $data['corporate']['id'] ?? null;
 
