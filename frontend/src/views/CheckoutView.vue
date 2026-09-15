@@ -659,7 +659,9 @@ const handleConfirmAndPay = async () => {
       special_requests: specialRequests.value.trim(),
     }
 
-    const bffUrl = import.meta.env.VITE_BFF_API_URL || 'http://localhost:8002'
+    const bffUrl = (import.meta.env.VITE_BFF_API_URL !== undefined && import.meta.env.VITE_BFF_API_URL !== '')
+      ? import.meta.env.VITE_BFF_API_URL
+      : (import.meta.env.DEV ? 'http://localhost:8002' : '')
     const res = await fetch(`${bffUrl}/api/booking/reserve`, {
       method: 'POST',
       headers: {

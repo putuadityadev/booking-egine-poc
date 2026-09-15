@@ -21,7 +21,9 @@ const isSubmittingBooking = ref(false)
 const bookingError = ref('')
 
 export function useBooking() {
-  const bffUrl = import.meta.env.VITE_BFF_API_URL || 'http://localhost:8002'
+  const bffUrl = (import.meta.env.VITE_BFF_API_URL !== undefined && import.meta.env.VITE_BFF_API_URL !== '')
+    ? import.meta.env.VITE_BFF_API_URL
+    : (import.meta.env.DEV ? 'http://localhost:8002' : '')
 
   const nights = computed(() => {
     if (!checkIn.value || !checkOut.value) return 1
