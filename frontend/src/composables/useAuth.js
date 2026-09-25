@@ -179,6 +179,11 @@ export function useAuth() {
         throw new Error(data.message || 'Google authentication failed.')
       }
 
+      if (data.data?.is_pending_approval) {
+        authError.value = data.data.message || 'Registration successful. Your account is pending approval by the hotel.'
+        return data.data
+      }
+
       setAuthSession(data.data)
       isAuthModalOpen.value = false
       return data.data
@@ -397,6 +402,11 @@ export function useAuth() {
       const data = await res.json()
       if (!res.ok || !data.status) {
         throw new Error(data.message || 'Registration failed.')
+      }
+
+      if (data.data?.is_pending_approval) {
+        authError.value = data.data.message || 'Registration successful. Your account is pending approval by the hotel.'
+        return data.data
       }
 
       setAuthSession(data.data)

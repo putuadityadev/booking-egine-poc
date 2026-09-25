@@ -312,6 +312,7 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $request->validate([
+            'title' => 'nullable|string|max:20',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email',

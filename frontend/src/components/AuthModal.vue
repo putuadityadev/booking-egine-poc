@@ -25,15 +25,21 @@
       </div>
 
       <div class="auth-body">
-        <!-- Error Alert -->
-        <div v-if="authError" class="auth-alert-error">
-          <svg viewBox="0 0 24 24" fill="currentColor" class="alert-svg">
+        <!-- Alert (Error or Pending Approval Notice) -->
+        <div v-if="authError" :class="authError.toLowerCase().includes('pending approval') ? 'auth-alert-warning' : 'auth-alert-error'">
+          <svg v-if="authError.toLowerCase().includes('pending approval')" viewBox="0 0 24 24" fill="currentColor" class="alert-svg">
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.1.8-1.2-4.5-2.7V7z"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="currentColor" class="alert-svg">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
           </svg>
           <div class="error-msg-wrap">
             <span class="error-text">{{ authError }}</span>
             <span v-if="authError.includes('INVALID_CREDENTIALS')" class="error-hint">
               Tip: If you don't recall your password, click <strong>Login with OTP</strong> below for instant access.
+            </span>
+            <span v-else-if="authError.toLowerCase().includes('already registered') || authError.toLowerCase().includes('already exists')" class="error-hint">
+              Tip: Click <strong style="cursor: pointer; text-decoration: underline;" @click="switchToLogin">Sign In</strong> to log in with your existing account.
             </span>
           </div>
         </div>
@@ -268,8 +274,15 @@
           </div>
 
           <form @submit.prevent="handleRegisterSubmit" class="form-unified">
-            <!-- Name Row -->
-            <div class="two-col-grid">
+            <!-- Name Row with Title and Names -->
+            <div class="name-grid-row">
+              <div class="input-field-wrap title-field-wrap">
+                <select v-model="regTitle" class="airbnb-select" aria-label="Title">
+                  <option value="Mr.">Mr.</option>
+                  <option value="Mrs.">Mrs.</option>
+                  <option value="Ms.">Ms.</option>
+                </select>
+              </div>
               <div class="input-field-wrap">
                 <input
                   v-model="regFirstName"
@@ -705,6 +718,7 @@ const countdown = ref(120)
 let timerInterval = null
 
 // Register Form States
+const regTitle = ref('Mr.')
 const regFirstName = ref('Aditya')
 const regLastName = ref('Satriawan')
 const regEmail = ref('')
@@ -1091,6 +1105,7 @@ const handleRegisterSubmit = async () => {
 
   try {
     await registerMember(activePropertyId.value, {
+      title: regTitle.value,
       first_name: regFirstName.value.trim(),
       last_name: regLastName.value.trim(),
       email: regEmail.value.trim(),
@@ -1238,6 +1253,23 @@ const handleRegisterSubmit = async () => {
   color: #be123c;
 }
 
+.auth-alert-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #b45309;
+}
+
+.auth-alert-warning .alert-svg {
+  color: #d97706;
+}
+
 .auth-alert-success {
   display: flex;
   align-items: flex-start;
@@ -1371,6 +1403,41 @@ const handleRegisterSubmit = async () => {
 }
 
 .two-col-grid .airbnb-input {
+  padding-left: 12px;
+}
+
+.name-grid-row {
+  display: grid;
+  grid-template-columns: 86px 1fr 1fr;
+  gap: 8px;
+}
+
+.name-grid-row .title-field-wrap {
+  position: relative;
+}
+
+.airbnb-select {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.airbnb-select:focus {
+  border-color: #0f172a;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 1px #0f172a;
+}
+
+.name-grid-row .airbnb-input {
   padding-left: 12px;
 }
 
@@ -1729,6 +1796,18 @@ const handleRegisterSubmit = async () => {
   }
   .auth-body {
     padding: 18px;
+  }
+  .name-grid-row {
+    grid-template-columns: 78px 1fr 1fr;
+    gap: 6px;
+  }
+  .airbnb-select {
+    padding: 0 6px;
+    font-size: 13px;
+  }
+  .name-grid-row .airbnb-input {
+    padding-left: 8px;
+    font-size: 13px;
   }
 }
 </style>
